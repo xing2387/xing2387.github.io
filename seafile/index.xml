@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Seafiles on Eureka Demo</title>
+    <link>/seafile/</link>
+    <description>Recent content in Seafiles on Eureka Demo</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <copyright>&amp;copy; 2021 &lt;a href=&#34;https://www.wangchucheng.com/&#34;&gt;C. Wang&lt;/a&gt; and &lt;a href=&#34;https://www.ruiqima.com/&#34;&gt;R. Ma&lt;/a&gt;
+</copyright>
+    <lastBuildDate>Thu, 01 Jul 2021 14:27:38 +0800</lastBuildDate>
+    
+	<atom:link href="/seafile/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>bananapro-lubuntu16.04安装编译好的seafile-server</title>
+      <link>/seafile/11/</link>
+      <pubDate>Thu, 01 Jul 2021 14:27:38 +0800</pubDate>
+      
+      <guid>/seafile/11/</guid>
+      <description>bananapro - lubuntu16.04 安装 使用 &amp;ldquo;docker 编译arm版&amp;rdquo; 编译好的文件安装 tar -zxf seafile_arm_install.tar.gz #得到usr目录 sudo cp -r usr /  安装依赖包 apt-get install -y ssh libevent-dev libcurl4-openssl-dev libglib2.0-dev uuid-dev intltool libsqlite3-dev libmysqlclient-dev libarchive-dev libtool libjansson-dev valac libfuse-dev python-dateutil cmake re2c flex sqlite3 python-pip python-simplejson git libssl-dev libldap2-dev libonig-dev vim vim-scripts wget cmake gcc autoconf automake mysql-client librados-dev libxml2-dev curl sudo telnet netcat unzip netbase ca-certificates apt-transport-https build-essential libxslt1-dev libffi-dev libpcre3-dev libz-dev xz-utils nginx pkg-config poppler-utils libmemcached-dev sudo  忽略安装nginx的错误</description>
+    </item>
+    
+  </channel>
+</rss>

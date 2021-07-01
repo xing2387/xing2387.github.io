@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Posts on xing2387.github.io</title>
+    <link>https://xing2387.github.io/posts/</link>
+    <description>Recent content in Posts on xing2387.github.io</description>
+    <image>
+      <url>https://xing2387.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>https://xing2387.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Thu, 01 Jul 2021 14:25:00 +0800</lastBuildDate><atom:link href="https://xing2387.github.io/posts/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>[seafile-selfbuild] 5. 设置开机启动(bananapro&#43;lubuntu16.04)</title>
+      <link>https://xing2387.github.io/posts/seafile/5.-%E5%BC%80%E6%9C%BA%E5%90%AF%E5%8A%A8/</link>
+      <pubDate>Thu, 01 Jul 2021 14:25:00 +0800</pubDate>
+      
+      <guid>https://xing2387.github.io/posts/seafile/5.-%E5%BC%80%E6%9C%BA%E5%90%AF%E5%8A%A8/</guid>
+      <description>开机启动   启动脚本
+/root/bin/restartSeafile.sh 文件：
+#! /bin/bash  #杀存在的进程 pkill seaf-server ps -ef |grep seahub | awk &amp;#39;{print $2}&amp;#39; | xargs kill -9 #等mysql可用，启动seafile-server i=0 while [ $i -le 10 ]; do sleep 3; if [[ -e /var/run/mysqld/mysqld.sock ]]; then /usr/local/bin/seaf-server -c /root/dev/conf -d /root/dev/seafile-data -D all -f &amp;amp; break; fi let i=$i+1; done sleep 2 #启动seahub，要等一两分钟才能起来 export PYTHONPATH=/home/bananapi/.local/lib/python3.6/site-packages/:/usr/local/lib/python3.6/site-packages/:/root/dev/source-code/seahub/thirdpart:$PYTHONPATH export CCNET_CONF_DIR=/root/dev/conf export SEAFILE_CONF_DIR=/root/dev/seafile-data export SEAFILE_CENTRAL_CONF_DIR=/root/dev/conf python3 /root/dev/source-code/seahub/manage.py runserver 0.0.0.0:8000 &amp;amp; /root/bin/stopSeafile.</description>
+    </item>
+    
+    <item>
+      <title>[seafile-selfbuild] 4. FUSE extension文档</title>
+      <link>https://xing2387.github.io/posts/seafile/4.-fuse-extension/</link>
+      <pubDate>Thu, 01 Jul 2021 14:24:00 +0800</pubDate>
+      
+      <guid>https://xing2387.github.io/posts/seafile/4.-fuse-extension/</guid>
+      <description>FUSE extension 编译seafile-server的时候，去掉configure的&amp;ndash;disable-fuse参数，会多个seaf-fuse文件。
+官方文档 https://github.com/haiwen/seafile-admin-docs/blob/master/manual/extension/fuse.md
+Files in the seafile system are split to blocks, which means what are stored on your seafile server are not complete files, but blocks. This design faciliates effective data deduplication.
+However, administrators sometimes want to access the files directly on the server. You can use seaf-fuse to do this.
+seaf-fuse is an implementation of the FUSE virtual filesystem. In a word, it mounts all the seafile files to a folder (which is called the &amp;lsquo;&amp;lsquo;&amp;lsquo;mount point&amp;rsquo;&#39;&#39;), so that you can access all the files managed by seafile server, just as you access a normal folder on your server.</description>
+    </item>
+    
+    <item>
+      <title>[seafile-selfbuild] 3. 安装编译好的服务端(bananapro&#43;lubuntu16.04)</title>
+      <link>https://xing2387.github.io/posts/seafile/3.-bananapro-lubuntu16.04%E5%AE%89%E8%A3%85%E7%BC%96%E8%AF%91%E5%A5%BD%E7%9A%84seafile/</link>
+      <pubDate>Thu, 01 Jul 2021 14:23:00 +0800</pubDate>
+      
+      <guid>https://xing2387.github.io/posts/seafile/3.-bananapro-lubuntu16.04%E5%AE%89%E8%A3%85%E7%BC%96%E8%AF%91%E5%A5%BD%E7%9A%84seafile/</guid>
+      <description>bananapro - lubuntu16.04 安装 使用 &amp;ldquo;docker 编译arm版&amp;rdquo; 编译好的文件安装 tar -zxf seafile_arm_install.tar.gz #得到usr目录 sudo cp -r usr / 安装依赖包 apt-get install -y ssh libevent-dev libcurl4-openssl-dev libglib2.0-dev uuid-dev intltool libsqlite3-dev libmysqlclient-dev libarchive-dev libtool libjansson-dev valac libfuse-dev python-dateutil cmake re2c flex sqlite3 python-pip python-simplejson git libssl-dev libldap2-dev libonig-dev vim vim-scripts wget cmake gcc autoconf automake mysql-client librados-dev libxml2-dev curl sudo telnet netcat unzip netbase ca-certificates apt-transport-https build-essential libxslt1-dev libffi-dev libpcre3-dev libz-dev xz-utils nginx pkg-config poppler-utils libmemcached-dev sudo 忽略安装nginx的错误</description>
+    </item>
+    
+    <item>
+      <title>[seafile-selfbuild] 2. seafile-selfbuild: docker下编译arm版</title>
+      <link>https://xing2387.github.io/posts/seafile/2.-docker%E7%BC%96%E8%AF%91arm%E7%89%88/</link>
+      <pubDate>Thu, 01 Jul 2021 14:22:00 +0800</pubDate>
+      
+      <guid>https://xing2387.github.io/posts/seafile/2.-docker%E7%BC%96%E8%AF%91arm%E7%89%88/</guid>
+      <description>docker 编译arm版 docker运行arm镜像   安装qemu：
+sudo apt install qemu-user-static   下载并运行镜像：
+docker run -itd --name seafileArm arm32v7/ubuntu:18.04 docker container update --cpuset-cpus=&amp;#34;0,1,2,3,4,5,6,7&amp;#34; seafileArm docker container update -m 8g seafileArm docker stop seafileArm docker start seafileArm &amp;amp;&amp;amp; docker attach seafileArm   docker container修改ip
+#创建网段 sudo docker network create --subnet 172.18.0.0/24 --gateway 172.18.0.1 mynet #将container添加到这个网段并设置ip docker network connect --ip=172.18.0.2 mydockernet seafileArm #删除container默认的ip docker network disconnect bridge seafileArm   照 “offcial build guide” ，在docker下编译。   编译好后，修改安装路径，得到要安装的文件</description>
+    </item>
+    
+    <item>
+      <title>[seafile-selfbuild] 1. official build guide</title>
+      <link>https://xing2387.github.io/posts/seafile/1.-official-build-guide/</link>
+      <pubDate>Thu, 01 Jul 2021 14:21:00 +0800</pubDate>
+      
+      <guid>https://xing2387.github.io/posts/seafile/1.-official-build-guide/</guid>
+      <description>official build guide https://github.com/haiwen/seafile-admin-docs/blob/master/manual/build_seafile/server.md
+8.0.0版
+This is the document for deploying Seafile open source development environment in Ubuntu 1804 docker container.
+Run a container docker run -it -p 8000:8000 -p 8082:8082 -p 3000:3000 --name seafile-ce-env ubuntu:18.04 bash Note, the following commands are all executed in the seafile-ce-env docker container.
+Update Source and Install Dependencies. apt-get update &amp;amp;&amp;amp; apt-get upgrade -y apt-get install -y ssh libevent-dev libcurl4-openssl-dev libglib2.0-dev uuid-dev intltool libsqlite3-dev libmysqlclient-dev libarchive-dev libtool libjansson-dev valac libfuse-dev python-dateutil cmake re2c flex sqlite3 python-pip python-simplejson git libssl-dev libldap2-dev libonig-dev vim vim-scripts wget cmake gcc autoconf automake mysql-client librados-dev libxml2-dev curl sudo telnet netcat unzip netbase ca-certificates apt-transport-https build-essential libxslt1-dev libffi-dev libpcre3-dev libz-dev xz-utils nginx pkg-config poppler-utils libmemcached-dev sudo curl -sL &amp;lt;https://deb.</description>
+    </item>
+    
+  </channel>
+</rss>
