@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>gnu-automake-manual on xing2387.github.io</title>
+    <link>https://xing2387.github.io/series/gnu-automake-manual/</link>
+    <description>Recent content in gnu-automake-manual on xing2387.github.io</description>
+    <image>
+      <url>https://xing2387.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>https://xing2387.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Fri, 02 Jul 2021 14:22:00 +0800</lastBuildDate><atom:link href="https://xing2387.github.io/series/gnu-automake-manual/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>[gnu-automake-manual] 2.2. Use Cases</title>
+      <link>https://xing2387.github.io/posts/automake/2.2.-use-cases/</link>
+      <pubDate>Fri, 02 Jul 2021 14:22:00 +0800</pubDate>
+      
+      <guid>https://xing2387.github.io/posts/automake/2.2.-use-cases/</guid>
+      <description>为了适应不同系统环境下的编译，需要有.configure命令：run ./configure &amp;amp;&amp;amp; make &amp;amp;&amp;amp; make install
+2.2 Use Cases 2.2.2 make 的目标(targets)    命令      make check Run the test suite, if any.   make installcheck Check the installed programs or libraries, if supported.   make distclean Additionally erase anything ./configure created.   make dist Recreate package-version.tar.gz from all the source files.    2.2.3 目录变量 部分变量：
+   Directory variable Default value     prefix /usr/local   exec_prefix ${prefix}   bindir ${exec_prefix}/bin   libdir ${exec_prefix}/lib   includedir ${prefix}/include   datarootdir ${prefix}/share   datadir ${datarootdir}   mandir ${datarootdir}/man   infodir ${datarootdir}/info   docdir ${datarootdir}/doc/${PACKAGE}    使用： .</description>
+    </item>
+    
+    <item>
+      <title>[gnu-automake-manual] 1. forward</title>
+      <link>https://xing2387.github.io/posts/automake/1.-forward/</link>
+      <pubDate>Fri, 02 Jul 2021 14:21:00 +0800</pubDate>
+      
+      <guid>https://xing2387.github.io/posts/automake/1.-forward/</guid>
+      <description>gnu automake manual</description>
+    </item>
+    
+  </channel>
+</rss>

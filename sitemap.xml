@@ -3,27 +3,42 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
+    <loc>https://xing2387.github.io/posts/automake/2.2.-use-cases/</loc>
+    <lastmod>2021-07-02T14:22:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xing2387.github.io/series/gnu-automake-manual/</loc>
+    <lastmod>2021-07-02T14:22:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xing2387.github.io/posts/</loc>
+    <lastmod>2021-07-02T14:22:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xing2387.github.io/series/</loc>
+    <lastmod>2021-07-02T14:22:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xing2387.github.io/</loc>
+    <lastmod>2021-07-02T14:22:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xing2387.github.io/posts/automake/1.-forward/</loc>
+    <lastmod>2021-07-02T14:21:00+08:00</lastmod>
+  </url>
+  
+  <url>
     <loc>https://xing2387.github.io/posts/seafile/5.-%E5%BC%80%E6%9C%BA%E5%90%AF%E5%8A%A8/</loc>
     <lastmod>2021-07-01T14:25:00+08:00</lastmod>
   </url>
   
   <url>
-    <loc>https://xing2387.github.io/posts/</loc>
-    <lastmod>2021-07-01T14:25:00+08:00</lastmod>
-  </url>
-  
-  <url>
     <loc>https://xing2387.github.io/series/seafile/</loc>
-    <lastmod>2021-07-01T14:25:00+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://xing2387.github.io/series/</loc>
-    <lastmod>2021-07-01T14:25:00+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://xing2387.github.io/</loc>
     <lastmod>2021-07-01T14:25:00+08:00</lastmod>
   </url>
   
@@ -45,6 +60,10 @@
   <url>
     <loc>https://xing2387.github.io/posts/seafile/1.-official-build-guide/</loc>
     <lastmod>2021-07-01T14:21:00+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://xing2387.github.io/posts/automake/2.4-hello-world/</loc>
   </url>
   
 </urlset>

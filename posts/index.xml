@@ -9,7 +9,27 @@
       <link>https://xing2387.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Thu, 01 Jul 2021 14:25:00 +0800</lastBuildDate><atom:link href="https://xing2387.github.io/posts/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Fri, 02 Jul 2021 14:22:00 +0800</lastBuildDate><atom:link href="https://xing2387.github.io/posts/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>[gnu-automake-manual] 2.2. Use Cases</title>
+      <link>https://xing2387.github.io/posts/automake/2.2.-use-cases/</link>
+      <pubDate>Fri, 02 Jul 2021 14:22:00 +0800</pubDate>
+      
+      <guid>https://xing2387.github.io/posts/automake/2.2.-use-cases/</guid>
+      <description>为了适应不同系统环境下的编译，需要有.configure命令：run ./configure &amp;amp;&amp;amp; make &amp;amp;&amp;amp; make install
+2.2 Use Cases 2.2.2 make 的目标(targets)    命令      make check Run the test suite, if any.   make installcheck Check the installed programs or libraries, if supported.   make distclean Additionally erase anything ./configure created.   make dist Recreate package-version.tar.gz from all the source files.    2.2.3 目录变量 部分变量：
+   Directory variable Default value     prefix /usr/local   exec_prefix ${prefix}   bindir ${exec_prefix}/bin   libdir ${exec_prefix}/lib   includedir ${prefix}/include   datarootdir ${prefix}/share   datadir ${datarootdir}   mandir ${datarootdir}/man   infodir ${datarootdir}/info   docdir ${datarootdir}/doc/${PACKAGE}    使用： .</description>
+    </item>
+    
+    <item>
+      <title>[gnu-automake-manual] 1. forward</title>
+      <link>https://xing2387.github.io/posts/automake/1.-forward/</link>
+      <pubDate>Fri, 02 Jul 2021 14:21:00 +0800</pubDate>
+      
+      <guid>https://xing2387.github.io/posts/automake/1.-forward/</guid>
+      <description>gnu automake manual</description>
+    </item>
+    
     <item>
       <title>[seafile-selfbuild] 5. 设置开机启动(bananapro&#43;lubuntu16.04)</title>
       <link>https://xing2387.github.io/posts/seafile/5.-%E5%BC%80%E6%9C%BA%E5%90%AF%E5%8A%A8/</link>
@@ -66,6 +86,19 @@ docker run -itd --name seafileArm arm32v7/ubuntu:18.04 docker container update -
 This is the document for deploying Seafile open source development environment in Ubuntu 1804 docker container.
 Run a container docker run -it -p 8000:8000 -p 8082:8082 -p 3000:3000 --name seafile-ce-env ubuntu:18.04 bash Note, the following commands are all executed in the seafile-ce-env docker container.
 Update Source and Install Dependencies. apt-get update &amp;amp;&amp;amp; apt-get upgrade -y apt-get install -y ssh libevent-dev libcurl4-openssl-dev libglib2.0-dev uuid-dev intltool libsqlite3-dev libmysqlclient-dev libarchive-dev libtool libjansson-dev valac libfuse-dev python-dateutil cmake re2c flex sqlite3 python-pip python-simplejson git libssl-dev libldap2-dev libonig-dev vim vim-scripts wget cmake gcc autoconf automake mysql-client librados-dev libxml2-dev curl sudo telnet netcat unzip netbase ca-certificates apt-transport-https build-essential libxslt1-dev libffi-dev libpcre3-dev libz-dev xz-utils nginx pkg-config poppler-utils libmemcached-dev sudo curl -sL &amp;lt;https://deb.</description>
+    </item>
+    
+    <item>
+      <title></title>
+      <link>https://xing2387.github.io/posts/automake/2.4-hello-world/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://xing2387.github.io/posts/automake/2.4-hello-world/</guid>
+      <description>2.4.1 创建 amhello-1.0.tar.gz 只有5个文件：
+~/amhello % tree . ├── configure.ac ├── Makefile.am ├── README └── src ├── main.c └── Makefile.am 1 directory, 5 files   src/main.c
+#include &amp;lt;config.h&amp;gt;#include &amp;lt;stdio.h&amp;gt;int main (void) { puts (&amp;#34;Hello World!&amp;#34;); puts (&amp;#34;This is &amp;#34; PACKAGE_STRING &amp;#34;.&amp;#34;); return 0; }   README
+This is a demonstration package for GNU Automake. Type &#39;info Automake&#39; to read the Automake manual.   src/Makefile.am
+bin_PROGRAMS = hello hello_SOURCES = main.</description>
     </item>
     
   </channel>
