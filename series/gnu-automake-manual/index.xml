@@ -9,7 +9,20 @@
       <link>https://xing2387.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Fri, 02 Jul 2021 14:22:00 +0800</lastBuildDate><atom:link href="https://xing2387.github.io/series/gnu-automake-manual/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Fri, 02 Jul 2021 14:23:00 +0800</lastBuildDate><atom:link href="https://xing2387.github.io/series/gnu-automake-manual/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>[gnu-automake-manual] 2.4. Hello World</title>
+      <link>https://xing2387.github.io/posts/automake/2.4-hello-world/</link>
+      <pubDate>Fri, 02 Jul 2021 14:23:00 +0800</pubDate>
+      
+      <guid>https://xing2387.github.io/posts/automake/2.4-hello-world/</guid>
+      <description>2.4.1 创建 amhello-1.0.tar.gz 只有5个文件：
+~/amhello % tree . ├── configure.ac ├── Makefile.am ├── README └── src ├── main.c └── Makefile.am 1 directory, 5 files   src/main.c
+#include &amp;lt;config.h&amp;gt;#include &amp;lt;stdio.h&amp;gt;int main (void) { puts (&amp;#34;Hello World!&amp;#34;); puts (&amp;#34;This is &amp;#34; PACKAGE_STRING &amp;#34;.&amp;#34;); return 0; }   README
+This is a demonstration package for GNU Automake. Type &#39;info Automake&#39; to read the Automake manual.   src/Makefile.am
+bin_PROGRAMS = hello hello_SOURCES = main.</description>
+    </item>
+    
     <item>
       <title>[gnu-automake-manual] 2.2. Use Cases</title>
       <link>https://xing2387.github.io/posts/automake/2.2.-use-cases/</link>
