@@ -1,0 +1,874 @@
+<!doctype html><html lang=en dir=auto><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no"><meta name=robots content="index, follow"><title>[port-ffmpeg-to-Android] 交叉编译Android下的ffmpeg | xing2387.github.io</title><meta name=keywords content="notes,port-ffmpeg-to-Android,ffmpeg"><meta name=description content="状态： 编译成功了，但还没验证得到的动态库是否正常可用。后面再更新。    下载ffmpeg源码 ffmpeg-4.4.tar.gz
+  Android ABI
+   ABI 支持的指令集 备注     armeabi-v7a armeabi等 与 ARMv5/v6 设备不兼容。   arm64-v8a AArch64    x86 x86 (IA-32)等 不支持 MOVBE 或 SSE4。   arm64-v8a x86-64等       编译脚本
+修改B站ijkplayer的compile-ffmpeg.sh得到。
+见末尾 build_ffmpeg.sh文件
+改动：
+  修改源码的目录结构，让各个平台共用一份代码。ijk是各个abi各自一份源码ffmpeg-${abi}，这比较独立。但是我想可能各个平台的公共代码比较多？独立的话，如果要修改源码就要同步修改各个平台的，虽然可以用软链接解决问题，但是先共用一份吧，目前先不管多平台的适配。
+  修改编译输出的目录结构，在源码下新建个build目录，各个平台的输出就是build/ffmpeg-${abi}。
+  修改生成的standalone toolchain目录，为build/toolchains/ffmpeg-${abi}。
+  更新ffmpeg和ndk版本，用了目前最新的4.4版本，按B站ijk的ndk14-android9编译会失败，更新成了ndk20-android21。
+  修改编译的so库名字为libandroidffmpeg."><meta name=author content="Me"><link rel=canonical href=https://xing2387.github.io/posts/androidffmpeg/port-ffmpeg-to-android/><meta name=google-site-verification content="XYZabc"><meta name=yandex-verification content="XYZabc"><meta name=msvalidate.01 content="XYZabc"><link crossorigin=anonymous href=/assets/css/stylesheet.min.d9015f4cb657fd3539b79b29ffbd11de4175ccd105ad7591beffaadfafb48488.css integrity="sha256-2QFfTLZX/TU5t5sp/70R3kF1zNEFrXWRvv+q36+0hIg=" rel="preload stylesheet" as=style><script defer crossorigin=anonymous src=/assets/js/highlight.min.27cd435cc9ed6abb4b496581b151804f79f366c412620272bb94e2f5f598ebcc.js integrity="sha256-J81DXMntartLSWWBsVGAT3nzZsQSYgJyu5Ti9fWY68w=" onload=hljs.initHighlightingOnLoad();></script><link rel=icon href=https://xing2387.github.io/%3Clink%20/%20abs%20url%3E><link rel=icon type=image/png sizes=16x16 href=https://xing2387.github.io/%3Clink%20/%20abs%20url%3E><link rel=icon type=image/png sizes=32x32 href=https://xing2387.github.io/%3Clink%20/%20abs%20url%3E><link rel=apple-touch-icon href=https://xing2387.github.io/%3Clink%20/%20abs%20url%3E><link rel=mask-icon href=https://xing2387.github.io/%3Clink%20/%20abs%20url%3E><meta name=theme-color content="#2e2e33"><meta name=msapplication-TileColor content="#2e2e33"><meta name=generator content="Hugo 0.68.3"><meta property="og:title" content="[port-ffmpeg-to-Android] 交叉编译Android下的ffmpeg"><meta property="og:description" content="状态： 编译成功了，但还没验证得到的动态库是否正常可用。后面再更新。    下载ffmpeg源码 ffmpeg-4.4.tar.gz
+  Android ABI
+   ABI 支持的指令集 备注     armeabi-v7a armeabi等 与 ARMv5/v6 设备不兼容。   arm64-v8a AArch64    x86 x86 (IA-32)等 不支持 MOVBE 或 SSE4。   arm64-v8a x86-64等       编译脚本
+修改B站ijkplayer的compile-ffmpeg.sh得到。
+见末尾 build_ffmpeg.sh文件
+改动：
+  修改源码的目录结构，让各个平台共用一份代码。ijk是各个abi各自一份源码ffmpeg-${abi}，这比较独立。但是我想可能各个平台的公共代码比较多？独立的话，如果要修改源码就要同步修改各个平台的，虽然可以用软链接解决问题，但是先共用一份吧，目前先不管多平台的适配。
+  修改编译输出的目录结构，在源码下新建个build目录，各个平台的输出就是build/ffmpeg-${abi}。
+  修改生成的standalone toolchain目录，为build/toolchains/ffmpeg-${abi}。
+  更新ffmpeg和ndk版本，用了目前最新的4.4版本，按B站ijk的ndk14-android9编译会失败，更新成了ndk20-android21。
+  修改编译的so库名字为libandroidffmpeg."><meta property="og:type" content="article"><meta property="og:url" content="https://xing2387.github.io/posts/androidffmpeg/port-ffmpeg-to-android/"><meta property="og:image" content="https://xing2387.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E"><meta property="article:section" content="posts"><meta property="article:published_time" content="2021-07-05T14:21:00+08:00"><meta property="article:modified_time" content="2021-07-05T14:21:00+08:00"><meta property="og:site_name" content="xing2387"><meta name=twitter:card content="summary_large_image"><meta name=twitter:image content="https://xing2387.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E"><meta name=twitter:title content="[port-ffmpeg-to-Android] 交叉编译Android下的ffmpeg"><meta name=twitter:description content="状态： 编译成功了，但还没验证得到的动态库是否正常可用。后面再更新。    下载ffmpeg源码 ffmpeg-4.4.tar.gz
+  Android ABI
+   ABI 支持的指令集 备注     armeabi-v7a armeabi等 与 ARMv5/v6 设备不兼容。   arm64-v8a AArch64    x86 x86 (IA-32)等 不支持 MOVBE 或 SSE4。   arm64-v8a x86-64等       编译脚本
+修改B站ijkplayer的compile-ffmpeg.sh得到。
+见末尾 build_ffmpeg.sh文件
+改动：
+  修改源码的目录结构，让各个平台共用一份代码。ijk是各个abi各自一份源码ffmpeg-${abi}，这比较独立。但是我想可能各个平台的公共代码比较多？独立的话，如果要修改源码就要同步修改各个平台的，虽然可以用软链接解决问题，但是先共用一份吧，目前先不管多平台的适配。
+  修改编译输出的目录结构，在源码下新建个build目录，各个平台的输出就是build/ffmpeg-${abi}。
+  修改生成的standalone toolchain目录，为build/toolchains/ffmpeg-${abi}。
+  更新ffmpeg和ndk版本，用了目前最新的4.4版本，按B站ijk的ndk14-android9编译会失败，更新成了ndk20-android21。
+  修改编译的so库名字为libandroidffmpeg."><script type=application/ld+json>{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":2,"name":"[port-ffmpeg-to-Android] 交叉编译Android下的ffmpeg","item":"https://xing2387.github.io/posts/androidffmpeg/port-ffmpeg-to-android/"}]}</script><script type=application/ld+json>{"@context":"https://schema.org","@type":"BlogPosting","headline":"[port-ffmpeg-to-Android] 交叉编译Android下的ffmpeg","name":"[port-ffmpeg-to-Android] 交叉编译Android下的ffmpeg","description":"状态： 编译成功了，但还没验证得到的动态库是否正常可用。后面再更新。    下载ffmpeg源码 ffmpeg-4.4.tar.gz\n  Android ABI\n   ABI 支持的指令集 备注     armeabi-v7a armeabi等 与 ARMv5/v6 设备不兼容。   arm64-v8a AArch64    x86 x86 (IA-32)等 不支持 MOVBE 或 SSE4。   arm64-v8a x86-64等       编译脚本\n修改B站ijkplayer的compile-ffmpeg.sh得到。\n见末尾 build_ffmpeg.sh文件\n改动：\n  修改源码的目录结构，让各个平台共用一份代码。ijk是各个abi各自一份源码ffmpeg-${abi}，这比较独立。但是我想可能各个平台的公共代码比较多？独立的话，如果要修改源码就要同步修改各个平台的，虽然可以用软链接解决问题，但是先共用一份吧，目前先不管多平台的适配。\n  修改编译输出的目录结构，在源码下新建个build目录，各个平台的输出就是build/ffmpeg-${abi}。\n  修改生成的standalone toolchain目录，为build/toolchains/ffmpeg-${abi}。\n  更新ffmpeg和ndk版本，用了目前最新的4.4版本，按B站ijk的ndk14-android9编译会失败，更新成了ndk20-android21。\n  修改编译的so库名字为libandroidffmpeg.","keywords":["notes","port-ffmpeg-to-Android","ffmpeg"],"articleBody":"状态： 编译成功了，但还没验证得到的动态库是否正常可用。后面再更新。    下载ffmpeg源码 ffmpeg-4.4.tar.gz\n  Android ABI\n   ABI 支持的指令集 备注     armeabi-v7a armeabi等 与 ARMv5/v6 设备不兼容。   arm64-v8a AArch64    x86 x86 (IA-32)等 不支持 MOVBE 或 SSE4。   arm64-v8a x86-64等       编译脚本\n修改B站ijkplayer的compile-ffmpeg.sh得到。\n见末尾 build_ffmpeg.sh文件\n改动：\n  修改源码的目录结构，让各个平台共用一份代码。ijk是各个abi各自一份源码ffmpeg-${abi}，这比较独立。但是我想可能各个平台的公共代码比较多？独立的话，如果要修改源码就要同步修改各个平台的，虽然可以用软链接解决问题，但是先共用一份吧，目前先不管多平台的适配。\n  修改编译输出的目录结构，在源码下新建个build目录，各个平台的输出就是build/ffmpeg-${abi}。\n  修改生成的standalone toolchain目录，为build/toolchains/ffmpeg-${abi}。\n  更新ffmpeg和ndk版本，用了目前最新的4.4版本，按B站ijk的ndk14-android9编译会失败，更新成了ndk20-android21。\n  修改编译的so库名字为libandroidffmpeg.so。\n    复制configure参数配置文件\n是给configure的参数。 复制B站ijkplayer的config目录得到。\n$ tree config/ config/ ├── module-default.sh ├── module-lite-hevc.sh ├── module-lite.sh └── module.sh - module-lite.sh 0 directories, 4 files 见末尾 module-lite.sh文件\n  复制do-detect-env.sh文件 复制B站ijkplayer的do-detect-env.sh得到。\n见末尾 do-detect-env.sh文件\n修改do-detect-env.sh文件：\n添加linux下的make -j参数，文件末尾的case \"$UNAME_S\"添加Linux分支：\ncase \"$UNAME_S\" in Linux) export IJK_MAKE_FLAG=-j`nproc` ;; esac   编译\n#前面准备好后的目录内容： $ ls build_ffmpeg.sh do-detect-env.sh ffmpeg-4.4.tar.gz config ffmpeg-4.4 $ cd ffmpeg-4.4 \u0026\u0026 mkdir build \u0026\u0026 cd build $ ../../build_ffmpeg.sh armv7a 最后编译得到\n$ tree -L 2 build build ├── ffmpeg-armv7a │ ├── compat │ ├── config.h │ ├── doc │ ├── ffbuild │ ├── libavcodec │ ├── libavdevice │ ├── libavfilter │ ├── libavformat │ ├── libavutil │ ├── libswresample │ ├── libswscale │ ├── Makefile │ ├── output │ ├── src - /path_to_your_worksapce/ffmpeg-4.4 │ └── tests └── toolchains └── ffmpeg-armv7a 16 directories, 2 files 其中，output目录为：\n其中有后面要用的ffmpeg动态库和头文件。\n$ tree output output ├── config.h ├── include 头文件 │ ├── libavcodec 目录 │ ├── libavfilter 目录 │ ├── libavformat 目录 │ ├── libavutil 目录 │ ├── libffmpeg │ │ └── config.h │ ├── libswresample 目录 │ └── libswscale 目录 ├── lib │ ├── libavcodec.a │ ├── libavfilter.a │ ├── libavformat.a │ ├── libavutil.a │ ├── libswresample.a │ ├── libswscale.a │ └── pkgconfig │ └── xxx.pc ├── libandroidffmpeg.so ├── share │ └── ffmpeg │ │ └── C文件 └── shared ├── include - /path_to_your_worksapce/ffmpeg-4.4/build/../build/ffmpeg-armv7a/output/include └── lib ├── libandroidffmpeg.so - /path_to_your_worksapce//ffmpeg-4.4/build/../build/ffmpeg-armv7a/output/libandroidffmpeg.so └── pkgconfig └── xxx.pc   build_ffmpeg.sh文件 #! /usr/bin/env bash # # Copyright (C) 2013-2014 Zhang Rui  # # Licensed under the Apache License, Version 2.0 (the \"License\"); # you may not use this file except in compliance with the License. # You may obtain a copy of the License at # # http://www.apache.org/licenses/LICENSE-2.0 # # Unless required by applicable law or agreed to in writing, software # distributed under the License is distributed on an \"AS IS\" BASIS, # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. # See the License for the specific language governing permissions and # limitations under the License. # # This script is based on projects below # https://github.com/yixia/FFmpeg-Android # http://git.videolan.org/?p=vlc-ports/android.git;a=summary #-------------------- echo \"====================\" echo \"[*] check env $1\" echo \"====================\" set -e ANDROID_NDK=$ANDROID_SDK_HOME/ndk/android-ndk-r14b ANDROID_NDK=$ANDROID_SDK_HOME/ndk/20.0.5594570 #-------------------- # common defines FF_ARCH=$1 FF_BUILD_OPT=$2 echo \"FF_ARCH=$FF_ARCH\" echo \"FF_BUILD_OPT=$FF_BUILD_OPT\" if [ -z \"$FF_ARCH\" ]; then echo \"You must specific an architecture 'arm, armv7a, x86, ...'.\" echo \"\" exit 1 fi FF_TOOLCHAIN_ROOT=\"`pwd`/toolchains\" FF_BUILD_ROOT=\"`pwd`/..\" FF_ANDROID_PLATFORM=android-21 FF_BUILD_NAME= FF_SOURCE= FF_CROSS_PREFIX= FF_DEP_OPENSSL_INC= FF_DEP_OPENSSL_LIB= FF_DEP_LIBSOXR_INC= FF_DEP_LIBSOXR_LIB= FF_CFG_FLAGS= FF_EXTRA_CFLAGS= FF_EXTRA_LDFLAGS= FF_DEP_LIBS= FF_MODULE_DIRS=\"compat libavcodec libavfilter libavformat libavutil libswresample libswscale\" FF_ASSEMBLER_SUB_DIRS= #-------------------- echo \"\" echo \"--------------------\" echo \"[*] make NDK standalone toolchain\" echo \"--------------------\" . $FF_BUILD_ROOT/../do-detect-env.sh FF_MAKE_TOOLCHAIN_FLAGS=$IJK_MAKE_TOOLCHAIN_FLAGS FF_MAKE_FLAGS=$IJK_MAKE_FLAG FF_GCC_VER=$IJK_GCC_VER FF_GCC_64_VER=$IJK_GCC_64_VER #----- armv7a begin ----- if [ \"$FF_ARCH\" = \"armv7a\" ]; then FF_BUILD_NAME=ffmpeg-armv7a FF_BUILD_NAME_OPENSSL=openssl-armv7a FF_BUILD_NAME_LIBSOXR=libsoxr-armv7a FF_CROSS_PREFIX=arm-linux-androideabi FF_TOOLCHAIN_NAME=${FF_CROSS_PREFIX}-${FF_GCC_VER} FF_CFG_FLAGS=\"$FF_CFG_FLAGS--arch=arm --cpu=cortex-a8\" FF_CFG_FLAGS=\"$FF_CFG_FLAGS--enable-neon\" FF_CFG_FLAGS=\"$FF_CFG_FLAGS--enable-thumb\" FF_EXTRA_CFLAGS=\"$FF_EXTRA_CFLAGS-march=armv7-a -mcpu=cortex-a8 -mfpu=vfpv3-d16 -mfloat-abi=softfp -mthumb\" FF_EXTRA_LDFLAGS=\"$FF_EXTRA_LDFLAGS-Wl,--fix-cortex-a8\" FF_ASSEMBLER_SUB_DIRS=\"arm\" elif [ \"$FF_ARCH\" = \"armv5\" ]; then FF_BUILD_NAME=ffmpeg-armv5 FF_BUILD_NAME_OPENSSL=openssl-armv5 FF_BUILD_NAME_LIBSOXR=libsoxr-armv5 FF_CROSS_PREFIX=arm-linux-androideabi FF_TOOLCHAIN_NAME=${FF_CROSS_PREFIX}-${FF_GCC_VER} FF_CFG_FLAGS=\"$FF_CFG_FLAGS--arch=arm\" FF_EXTRA_CFLAGS=\"$FF_EXTRA_CFLAGS-march=armv5te -mtune=arm9tdmi -msoft-float\" FF_EXTRA_LDFLAGS=\"$FF_EXTRA_LDFLAGS\" FF_ASSEMBLER_SUB_DIRS=\"arm\" elif [ \"$FF_ARCH\" = \"x86\" ]; then FF_BUILD_NAME=ffmpeg-x86 FF_BUILD_NAME_OPENSSL=openssl-x86 FF_BUILD_NAME_LIBSOXR=libsoxr-x86 FF_CROSS_PREFIX=i686-linux-android FF_TOOLCHAIN_NAME=x86-${FF_GCC_VER} FF_CFG_FLAGS=\"$FF_CFG_FLAGS--arch=x86 --cpu=i686 --enable-yasm\" FF_EXTRA_CFLAGS=\"$FF_EXTRA_CFLAGS-march=atom -msse3 -ffast-math -mfpmath=sse\" FF_EXTRA_LDFLAGS=\"$FF_EXTRA_LDFLAGS\" FF_ASSEMBLER_SUB_DIRS=\"x86\" elif [ \"$FF_ARCH\" = \"x86_64\" ]; then FF_ANDROID_PLATFORM=android-21 FF_BUILD_NAME=ffmpeg-x86_64 FF_BUILD_NAME_OPENSSL=openssl-x86_64 FF_BUILD_NAME_LIBSOXR=libsoxr-x86_64 FF_CROSS_PREFIX=x86_64-linux-android FF_TOOLCHAIN_NAME=${FF_CROSS_PREFIX}-${FF_GCC_64_VER} FF_CFG_FLAGS=\"$FF_CFG_FLAGS--arch=x86_64 --enable-yasm\" FF_EXTRA_CFLAGS=\"$FF_EXTRA_CFLAGS\" FF_EXTRA_LDFLAGS=\"$FF_EXTRA_LDFLAGS\" FF_ASSEMBLER_SUB_DIRS=\"x86\" elif [ \"$FF_ARCH\" = \"arm64\" ]; then FF_ANDROID_PLATFORM=android-21 FF_BUILD_NAME=ffmpeg-arm64 FF_BUILD_NAME_OPENSSL=openssl-arm64 FF_BUILD_NAME_LIBSOXR=libsoxr-arm64 FF_CROSS_PREFIX=aarch64-linux-android FF_TOOLCHAIN_NAME=${FF_CROSS_PREFIX}-${FF_GCC_64_VER} FF_CFG_FLAGS=\"$FF_CFG_FLAGS--arch=aarch64 --enable-yasm\" FF_EXTRA_CFLAGS=\"$FF_EXTRA_CFLAGS\" FF_EXTRA_LDFLAGS=\"$FF_EXTRA_LDFLAGS\" FF_ASSEMBLER_SUB_DIRS=\"aarch64 neon\" else echo \"unknown architecture $FF_ARCH\"; exit 1 fi FF_SOURCE=$FF_BUILD_ROOT BUILD_DIR=$FF_SOURCE/build/$FF_BUILD_NAME if [ ! -d $FF_SOURCE ]; then mkdir $BUILD_DIR fi # cd $BUILD_DIR if [ ! -d $FF_SOURCE ]; then echo \"\" echo \"!! ERROR\" echo \"!! Can not find FFmpeg directory for $FF_BUILD_NAME\" echo \"!! Run 'sh init-android.sh' first\" echo \"\" exit 1 fi FF_TOOLCHAIN_PATH=$FF_TOOLCHAIN_ROOT/$FF_BUILD_NAME FF_MAKE_TOOLCHAIN_FLAGS=\"$FF_MAKE_TOOLCHAIN_FLAGS--install-dir=$FF_TOOLCHAIN_PATH\" FF_SYSROOT=$FF_TOOLCHAIN_PATH/sysroot FF_PREFIX=$FF_BUILD_ROOT/build/$FF_BUILD_NAME/output FF_DEP_OPENSSL_INC=$FF_BUILD_ROOT/build/$FF_BUILD_NAME_OPENSSL/output/include FF_DEP_OPENSSL_LIB=$FF_BUILD_ROOT/build/$FF_BUILD_NAME_OPENSSL/output/lib FF_DEP_LIBSOXR_INC=$FF_BUILD_ROOT/build/$FF_BUILD_NAME_LIBSOXR/output/include FF_DEP_LIBSOXR_LIB=$FF_BUILD_ROOT/build/$FF_BUILD_NAME_LIBSOXR/output/lib case \"$UNAME_S\" in CYGWIN_NT-*) FF_SYSROOT=\"$(cygpath -am $FF_SYSROOT)\" FF_PREFIX=\"$(cygpath -am $FF_PREFIX)\" ;; esac mkdir -p $FF_PREFIX # mkdir -p $FF_SYSROOT FF_TOOLCHAIN_TOUCH=\"$FF_TOOLCHAIN_PATH/touch\" if [ ! -f \"$FF_TOOLCHAIN_TOUCH\" ]; then $ANDROID_NDK/build/tools/make-standalone-toolchain.sh \\  $FF_MAKE_TOOLCHAIN_FLAGS \\  --platform=$FF_ANDROID_PLATFORM \\  --toolchain=$FF_TOOLCHAIN_NAME touch $FF_TOOLCHAIN_TOUCH; fi #-------------------- echo \"\" echo \"--------------------\" echo \"[*] check ffmpeg env\" echo \"--------------------\" export PATH=$FF_TOOLCHAIN_PATH/bin/:$PATH #export CC=\"ccache ${FF_CROSS_PREFIX}-gcc\" export CC=\"${FF_CROSS_PREFIX}-gcc\" export LD=${FF_CROSS_PREFIX}-ld export AR=${FF_CROSS_PREFIX}-ar export STRIP=${FF_CROSS_PREFIX}-strip FF_CFLAGS=\"-O3 -Wall -pipe \\ -std=c99 \\ -ffast-math \\ -fstrict-aliasing -Werror=strict-aliasing \\ -Wno-psabi -Wa,--noexecstack \\ -DANDROID -DNDEBUG\" # cause av_strlcpy crash with gcc4.7, gcc4.8 # -fmodulo-sched -fmodulo-sched-allow-regmoves # --enable-thumb is OK #FF_CFLAGS=\"$FF_CFLAGS -mthumb\" # not necessary #FF_CFLAGS=\"$FF_CFLAGS -finline-limit=300\" export COMMON_FF_CFG_FLAGS= . $FF_BUILD_ROOT/../config/module.sh #-------------------- # with openssl if [ -f \"${FF_DEP_OPENSSL_LIB}/libssl.a\" ]; then echo \"OpenSSL detected\" # FF_CFG_FLAGS=\"$FF_CFG_FLAGS --enable-nonfree\" FF_CFG_FLAGS=\"$FF_CFG_FLAGS--enable-openssl\" FF_CFLAGS=\"$FF_CFLAGS-I${FF_DEP_OPENSSL_INC}\" FF_DEP_LIBS=\"$FF_DEP_LIBS-L${FF_DEP_OPENSSL_LIB}-lssl -lcrypto\" fi if [ -f \"${FF_DEP_LIBSOXR_LIB}/libsoxr.a\" ]; then echo \"libsoxr detected\" FF_CFG_FLAGS=\"$FF_CFG_FLAGS--enable-libsoxr\" FF_CFLAGS=\"$FF_CFLAGS-I${FF_DEP_LIBSOXR_INC}\" FF_DEP_LIBS=\"$FF_DEP_LIBS-L${FF_DEP_LIBSOXR_LIB}-lsoxr\" fi FF_CFG_FLAGS=\"$FF_CFG_FLAGS$COMMON_FF_CFG_FLAGS\" #-------------------- # Standard options: FF_CFG_FLAGS=\"$FF_CFG_FLAGS--prefix=$FF_PREFIX\" # Advanced options (experts only): FF_CFG_FLAGS=\"$FF_CFG_FLAGS--cross-prefix=${FF_CROSS_PREFIX}-\" FF_CFG_FLAGS=\"$FF_CFG_FLAGS--enable-cross-compile\" FF_CFG_FLAGS=\"$FF_CFG_FLAGS--target-os=linux\" FF_CFG_FLAGS=\"$FF_CFG_FLAGS--enable-pic\" # FF_CFG_FLAGS=\"$FF_CFG_FLAGS --disable-symver\" if [ \"$FF_ARCH\" = \"x86\" ]; then FF_CFG_FLAGS=\"$FF_CFG_FLAGS--disable-asm\" else # Optimization options (experts only): FF_CFG_FLAGS=\"$FF_CFG_FLAGS--enable-asm\" FF_CFG_FLAGS=\"$FF_CFG_FLAGS--enable-inline-asm\" fi case \"$FF_BUILD_OPT\" in debug) FF_CFG_FLAGS=\"$FF_CFG_FLAGS--disable-optimizations\" FF_CFG_FLAGS=\"$FF_CFG_FLAGS--enable-debug\" FF_CFG_FLAGS=\"$FF_CFG_FLAGS--disable-small\" ;; *) FF_CFG_FLAGS=\"$FF_CFG_FLAGS--enable-optimizations\" FF_CFG_FLAGS=\"$FF_CFG_FLAGS--enable-debug\" FF_CFG_FLAGS=\"$FF_CFG_FLAGS--enable-small\" ;; esac #-------------------- echo \"\" echo \"--------------------\" echo \"[*] configurate ffmpeg\" echo \"--------------------\" cd $FF_SOURCE if [ -f \"./config.h\" ]; then echo 'reuse configure' else which $CC cd $BUILD_DIR ../../configure $FF_CFG_FLAGS \\  --extra-cflags=\"$FF_CFLAGS$FF_EXTRA_CFLAGS\" \\  --extra-ldflags=\"$FF_DEP_LIBS$FF_EXTRA_LDFLAGS\" make clean cd $FF_BUILD_ROOT/build fi #-------------------- echo \"\" echo \"--------------------\" echo \"[*] compile ffmpeg\" echo \"--------------------\" cd $BUILD_DIR cp config.* $FF_PREFIX make $FF_MAKE_FLAGS  /dev/null make install mkdir -p $FF_PREFIX/include/libffmpeg cp -f config.h $FF_PREFIX/include/libffmpeg/config.h cd $FF_BUILD_ROOT/build #-------------------- echo \"\" echo \"--------------------\" echo \"[*] link ffmpeg\" echo \"--------------------\" echo $FF_EXTRA_LDFLAGS FF_C_OBJ_FILES= FF_ASM_OBJ_FILES= for MODULE_DIR in $FF_MODULE_DIRS do C_OBJ_FILES=\"$MODULE_DIR/*.o\" if ls $C_OBJ_FILES 1 /dev/null 2\u00261; then echo \"link $MODULE_DIR/*.o\" FF_C_OBJ_FILES=\"$FF_C_OBJ_FILES$C_OBJ_FILES\" fi for ASM_SUB_DIR in $FF_ASSEMBLER_SUB_DIRS do ASM_OBJ_FILES=\"$MODULE_DIR/$ASM_SUB_DIR/*.o\" if ls $ASM_OBJ_FILES 1 /dev/null 2\u00261; then echo \"link $MODULE_DIR/$ASM_SUB_DIR/*.o\" FF_ASM_OBJ_FILES=\"$FF_ASM_OBJ_FILES$ASM_OBJ_FILES\" fi done done $CC -lm -lz -shared --sysroot=$FF_SYSROOT -Wl,--no-undefined -Wl,-z,noexecstack $FF_EXTRA_LDFLAGS \\  -Wl,-soname,libandroidffmpeg.so \\  $FF_C_OBJ_FILES \\  $FF_ASM_OBJ_FILES \\  $FF_DEP_LIBS \\  -o $FF_PREFIX/libandroidffmpeg.so mysedi() { f=$1 exp=$2 n=`basename $f` cp $f /tmp/$n sed $exp /tmp/$n  $f rm /tmp/$n } echo \"\" echo \"--------------------\" echo \"[*] create files for shared ffmpeg\" echo \"--------------------\" rm -rf $FF_PREFIX/shared mkdir -p $FF_PREFIX/shared/lib/pkgconfig ln -s $FF_PREFIX/include $FF_PREFIX/shared/include ln -s $FF_PREFIX/libandroidffmpeg.so $FF_PREFIX/shared/lib/libandroidffmpeg.so cp $FF_PREFIX/lib/pkgconfig/*.pc $FF_PREFIX/shared/lib/pkgconfig for f in $FF_PREFIX/lib/pkgconfig/*.pc; do # in case empty dir if [ ! -f $f ]; then continue fi cp $f $FF_PREFIX/shared/lib/pkgconfig f=$FF_PREFIX/shared/lib/pkgconfig/`basename $f` # OSX sed doesn't have in-place(-i) mysedi $f 's/\\/output/\\/output\\/shared/g' mysedi $f 's/-lavcodec/-landroidffmpeg/g' mysedi $f 's/-lavfilter/-landroidffmpeg/g' mysedi $f 's/-lavformat/-landroidffmpeg/g' mysedi $f 's/-lavutil/-landroidffmpeg/g' mysedi $f 's/-lswresample/-landroidffmpeg/g' mysedi $f 's/-lswscale/-landroidffmpeg/g' done do-detect-env.sh文件 #! /usr/bin/env bash # # Copyright (C) 2013-2014 Zhang Rui  # # Licensed under the Apache License, Version 2.0 (the \"License\"); # you may not use this file except in compliance with the License. # You may obtain a copy of the License at # # http://www.apache.org/licenses/LICENSE-2.0 # # Unless required by applicable law or agreed to in writing, software # distributed under the License is distributed on an \"AS IS\" BASIS, # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. # See the License for the specific language governing permissions and # limitations under the License. # # This script is based on projects below # https://github.com/yixia/FFmpeg-Android # http://git.videolan.org/?p=vlc-ports/android.git;a=summary #-------------------- set -e UNAME_S=$(uname -s) UNAME_SM=$(uname -sm) echo \"build on $UNAME_SM\" echo \"ANDROID_NDK=$ANDROID_NDK\" if [ -z \"$ANDROID_NDK\" ]; then echo \"You must define ANDROID_NDK before starting.\" echo \"They must point to your NDK directories.\" echo \"\" exit 1 fi # try to detect NDK version export IJK_GCC_VER=4.9 export IJK_GCC_64_VER=4.9 export IJK_MAKE_TOOLCHAIN_FLAGS= export IJK_MAKE_FLAG= export IJK_NDK_REL=$(grep -o '^r[0-9]*.*' $ANDROID_NDK/RELEASE.TXT 2/dev/null | sed 's/[[:space:]]*//g' | cut -b2-) case \"$IJK_NDK_REL\" in 10e*) # we don't use 4.4.3 because it doesn't handle threads correctly. if test -d ${ANDROID_NDK}/toolchains/arm-linux-androideabi-4.8 # if gcc 4.8 is present, it's there for all the archs (x86, mips, arm) then echo \"NDKr$IJK_NDK_RELdetected\" case \"$UNAME_S\" in Darwin) export IJK_MAKE_TOOLCHAIN_FLAGS=\"$IJK_MAKE_TOOLCHAIN_FLAGS--system=darwin-x86_64\" ;; CYGWIN_NT-*) export IJK_MAKE_TOOLCHAIN_FLAGS=\"$IJK_MAKE_TOOLCHAIN_FLAGS--system=windows-x86_64\" ;; esac else echo \"You need the NDKr10e or later\" exit 1 fi ;; *) IJK_NDK_REL=$(grep -o '^Pkg\\.Revision.*=[0-9]*.*' $ANDROID_NDK/source.properties 2/dev/null | sed 's/[[:space:]]*//g' | cut -d \"=\" -f 2) echo \"IJK_NDK_REL=$IJK_NDK_REL\" case \"$IJK_NDK_REL\" in 11*|12*|13*|14*|16*|20*) if test -d ${ANDROID_NDK}/toolchains/arm-linux-androideabi-4.9 then echo \"NDKr$IJK_NDK_RELdetected\" else echo \"You need the NDKr10e or later\" exit 1 fi ;; *) echo \"You need the NDKr10e or later\" exit 1 ;; esac ;; esac case \"$UNAME_S\" in Linux) export IJK_MAKE_FLAG=-j`nproc` ;; Darwin) export IJK_MAKE_FLAG=-j`sysctl -n machdep.cpu.thread_count` ;; CYGWIN_NT-*) IJK_WIN_TEMP=\"$(cygpath -am /tmp)\" export TEMPDIR=$IJK_WIN_TEMP/ echo \"Cygwin temp prefix=$IJK_WIN_TEMP/\" ;; esac module-lite.sh文件 #! /usr/bin/env bash  #-------------------- # Standard options: export COMMON_FF_CFG_FLAGS= # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --prefix=PREFIX\" # Licensing options: export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-gpl\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --enable-version3\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-nonfree\" # Configuration options: # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-static\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --enable-shared\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --enable-small\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-runtime-cpudetect\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-gray\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-swscale-alpha\" # Program options: export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-programs\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-ffmpeg\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-ffplay\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-ffprobe\" #export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-ffserver\" # Documentation options: export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-doc\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-htmlpages\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-manpages\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-podpages\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-txtpages\" # Component options: export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-avdevice\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-avcodec\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-avformat\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-avutil\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-swresample\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-swscale\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-postproc\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-avfilter\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-avresample\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-pthreads\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-w32threads\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-os2threads\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-network\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-dct\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-dwt\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-lsp\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-lzo\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-mdct\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-rdft\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-fft\" # Hardware accelerators: export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-d3d11va\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-dxva2\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-vaapi\" #export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-vda\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-vdpau\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-videotoolbox\" # Individual component options: # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-everything\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-encoders\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-encoder=png\" # ./configure --list-decoders export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-decoders\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-decoder=aac\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-decoder=aac_latm\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-decoder=flv\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-decoder=h264\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-decoder=mp3*\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-decoder=vp6f\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-decoder=flac\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-decoder=hevc\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-decoder=vp8\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-decoder=vp9\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-hwaccels\" # ./configure --list-muxers export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-muxers\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-muxer=mp4\" # ./configure --list-demuxers export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-demuxers\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-demuxer=ijk*\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-demuxer=aac\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-demuxer=concat\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-demuxer=data\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-demuxer=flv\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-demuxer=hls\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-demuxer=live_flv\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-demuxer=mov\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-demuxer=mp3\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-demuxer=mpegps\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-demuxer=mpegts\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-demuxer=mpegvideo\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-demuxer=flac\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-demuxer=hevc\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-demuxer=webm_dash_manifest\" # ./configure --list-parsers export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-parsers\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-parser=aac\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-parser=aac_latm\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-parser=h264\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-parser=flac\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-parser=hevc\" # ./configure --list-bsf export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-bsfs\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-bsf=chomp\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-bsf=dca_core\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-bsf=dump_extradata\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-bsf=hevc_mp4toannexb\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-bsf=imx_dump_header\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-bsf=mjpeg2jpeg\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-bsf=mjpega_dump_header\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-bsf=mov2textsub\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-bsf=mp3_header_decompress\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-bsf=mpeg4_unpack_bframes\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-bsf=noise\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-bsf=remove_extradata\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-bsf=text2movsub\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-bsf=vp9_superframe\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-bsf=eac3_core\" # ./configure --list-protocols export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-protocols\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-protocol=async\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-protocol=bluray\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-protocol=concat\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-protocol=crypto\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-protocol=ffrtmpcrypt\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-protocol=ffrtmphttp\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-protocol=gopher\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-protocol=icecast\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-protocol=librtmp*\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-protocol=libssh\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-protocol=md5\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-protocol=mmsh\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-protocol=mmst\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-protocol=rtmp*\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-protocol=rtmp\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--enable-protocol=rtmpt\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-protocol=rtp\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-protocol=sctp\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-protocol=srtp\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-protocol=subfile\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-protocol=unix\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-devices\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-filters\" # External library support: export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-iconv\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-audiotoolbox\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-videotoolbox\" # ... # Advanced options (experts only): # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --cross-prefix=${FF_CROSS_PREFIX}-\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --enable-cross-compile\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --sysroot=PATH\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --sysinclude=PATH\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --target-os=TAGET_OS\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --target-exec=CMD\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --target-path=DIR\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --toolchain=NAME\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --nm=NM\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --ar=AR\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --as=AS\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --yasmexe=EXE\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --cc=CC\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --cxx=CXX\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --dep-cc=DEPCC\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --ld=LD\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --host-cc=HOSTCC\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --host-cflags=HCFLAGS\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --host-cppflags=HCPPFLAGS\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --host-ld=HOSTLD\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --host-ldflags=HLDFLAGS\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --host-libs=HLIBS\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --host-os=OS\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --extra-cflags=ECFLAGS\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --extra-cxxflags=ECFLAGS\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --extra-ldflags=ELDFLAGS\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --extra-libs=ELIBS\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --extra-version=STRING\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --optflags=OPTFLAGS\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --build-suffix=SUFFIX\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --malloc-prefix=PREFIX\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --progs-suffix=SUFFIX\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --arch=ARCH\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --cpu=CPU\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --enable-pic\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --enable-sram\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --enable-thumb\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-symver\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --enable-hardcoded-tables\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-safe-bitstream-reader\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --enable-memalign-hack\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --enable-lto\" # Optimization options (experts only): # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --enable-asm\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-altivec\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-amd3dnow\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-amd3dnowext\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-mmx\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-mmxext\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-sse\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-sse2\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-sse3\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-ssse3\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-sse4\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-sse42\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-avx\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-fma4\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-armv5te\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-armv6\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-armv6t2\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-vfp\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-neon\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-vis\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --enable-inline-asm\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-yasm\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-mips32r2\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-mipsdspr1\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-mipsdspr2\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-mipsfpu\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-fast-unaligned\" # Developer options (useful when working on FFmpeg itself): # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --enable-coverage\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-debug\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --enable-debug=LEVEL\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-optimizations\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --enable-extra-warnings\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-stripping\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --assert-level=level\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --enable-memory-poisoning\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --valgrind=VALGRIND\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --enable-ftrapv\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --samples=PATH\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --enable-xmm-clobber-test\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --enable-random\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-random\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --enable-random=LIST\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --disable-random=LIST\" # export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS --random-seed=VALUE\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-linux-perf\" export COMMON_FF_CFG_FLAGS=\"$COMMON_FF_CFG_FLAGS--disable-bzlib\" ","wordCount":"2082","inLanguage":"en","datePublished":"2021-07-05T14:21:00+08:00","dateModified":"2021-07-05T14:21:00+08:00","author":{"@type":"Person","name":"Me"},"mainEntityOfPage":{"@type":"WebPage","@id":"https://xing2387.github.io/posts/androidffmpeg/port-ffmpeg-to-android/"},"publisher":{"@type":"Organization","name":"xing2387.github.io","logo":{"@type":"ImageObject","url":"https://xing2387.github.io/%3Clink%20/%20abs%20url%3E"}}}</script></head><body id=top><script>if(localStorage.getItem("pref-theme")==="dark"){document.body.classList.add('dark');}else if(localStorage.getItem("pref-theme")==="light"){document.body.classList.remove('dark')}else if(window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}</script><noscript><style type=text/css>#theme-toggle,.top-link{display:none}</style><style>@media(prefers-color-scheme:dark){:root{--theme: #1d1e20;--entry: #2e2e33;--primary: rgba(255, 255, 255, 0.84);--secondary: rgba(255, 255, 255, 0.56);--tertiary: rgba(255, 255, 255, 0.16);--content: rgba(255, 255, 255, 0.74);--hljs-bg: #2e2e33;--code-bg: #37383e;--border: #333}.list{background:var(--theme)}.list:not(.dark)::-webkit-scrollbar-track{background:0 0}.list:not(.dark)::-webkit-scrollbar-thumb{border-color:var(--theme)}}</style></noscript><header class=header><nav class=nav><div class=logo><a href=https://xing2387.github.io/ accesskey=h title="Home (Alt + H)">Home</a>
+<span class=logo-switches><button id=theme-toggle accesskey=t title="(Alt + T)"><svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg><svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button></span></div><ul id=menu><li><a href=https://xing2387.github.io/categories/ title=categories><span>categories</span></a></li><li><a href=https://xing2387.github.io/tags/ title=tags><span>tags</span></a></li><li><a href=https://example.org title=example.org><span>example.org</span></a></li></ul></nav></header><main class=main><article class=post-single><header class=post-header><div class=breadcrumbs><a href=https://xing2387.github.io/>Home</a></div><h1 class=post-title>[port-ffmpeg-to-Android] 交叉编译Android下的ffmpeg</h1><div class=post-meta>July 5, 2021&nbsp;·&nbsp;10 min&nbsp;·&nbsp;Me&nbsp;|&nbsp;<a href=https://github.com/%3cpath_to_repo%3e/content/posts/androidffmpeg/port%20ffmpeg%20to%20Android.md rel="noopener noreferrer" target=_blank>Suggest Changes</a></div></header><div class=post-content><h3 id=状态>状态：<a hidden class=anchor aria-hidden=true href=#状态>#</a></h3><pre><code>编译成功了，但还没验证得到的动态库是否正常可用。后面再更新。
+</code></pre><ul><li><p>下载ffmpeg源码
+<a href=http://www.ffmpeg.org/releases/ffmpeg-4.4.tar.gz>ffmpeg-4.4.tar.gz</a></p></li><li><p>Android ABI</p><table><thead><tr><th>ABI</th><th>支持的指令集</th><th>备注</th></tr></thead><tbody><tr><td>armeabi-v7a</td><td>armeabi等</td><td>与 ARMv5/v6 设备不兼容。</td></tr><tr><td>arm64-v8a</td><td>AArch64</td><td></td></tr><tr><td>x86</td><td>x86 (IA-32)等</td><td>不支持 MOVBE 或 SSE4。</td></tr><tr><td>arm64-v8a</td><td>x86-64等</td><td></td></tr></tbody></table></li><li><p>编译脚本</p><p>修改B站ijkplayer的<a href=https://github.com/bilibili/ijkplayer/blob/master/android/contrib/compile-ffmpeg.sh>compile-ffmpeg.sh</a>得到。</p><p><strong>见末尾 <a href=https://xing2387.github.io/posts/androidffmpeg/port-ffmpeg-to-Android/build_ffmpegsh%E6%96%87%E4%BB%B6>build_ffmpeg.sh文件</a></strong></p><p>改动：</p><ul><li><p>修改源码的目录结构，让各个平台共用一份代码。ijk是各个abi各自一份源码ffmpeg-${abi}，这比较独立。但是我想可能各个平台的公共代码比较多？独立的话，如果要修改源码就要同步修改各个平台的，虽然可以用软链接解决问题，但是先共用一份吧，目前先不管多平台的适配。</p></li><li><p>修改编译输出的目录结构，在源码下新建个build目录，各个平台的输出就是build/ffmpeg-${abi}。</p></li><li><p>修改生成的standalone toolchain目录，为build/toolchains/ffmpeg-${abi}。</p></li><li><p>更新ffmpeg和ndk版本，用了目前最新的4.4版本，按B站ijk的ndk14-android9编译会失败，更新成了ndk20-android21。</p></li><li><p>修改编译的so库名字为<code>libandroidffmpeg.so</code>。</p></li></ul></li><li><p>复制configure参数配置文件</p><p>是给configure的参数。
+复制B站ijkplayer的<a href=https://github.com/bilibili/ijkplayer/tree/master/config>config目录</a>得到。</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>$ tree config/
+config/
+├── module-default.sh
+├── module-lite-hevc.sh
+├── module-lite.sh
+└── module.sh -&gt; module-lite.sh
+
+<span style=color:#ae81ff>0</span> directories, <span style=color:#ae81ff>4</span> files
+</code></pre></div><p><strong>见末尾 <a href=https://xing2387.github.io/posts/androidffmpeg/port-ffmpeg-to-Android/module-litesh%E6%96%87%E4%BB%B6>module-lite.sh文件</a></strong></p></li><li><p>复制do-detect-env.sh文件
+复制B站ijkplayer的<a href=https://github.com/bilibili/ijkplayer/blob/master/android/contrib/tools/do-detect-env.sh>do-detect-env.sh</a>得到。</p><p><strong>见末尾 <a href=https://xing2387.github.io/posts/androidffmpeg/port-ffmpeg-to-Android/do-detect-envsh%E6%96%87%E4%BB%B6>do-detect-env.sh文件</a></strong></p><p>修改do-detect-env.sh文件：</p><p>添加linux下的make -j参数，文件末尾的<code>case "$UNAME_S"</code>添加Linux分支：</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=color:#66d9ef>case</span> <span style=color:#e6db74>&#34;</span>$UNAME_S<span style=color:#e6db74>&#34;</span> in
+Linux<span style=color:#f92672>)</span>
+    export IJK_MAKE_FLAG<span style=color:#f92672>=</span>-j<span style=color:#e6db74>`</span>nproc<span style=color:#e6db74>`</span>
+;;
+<span style=color:#66d9ef>esac</span>
+</code></pre></div></li><li><p>编译</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=color:#75715e>#前面准备好后的目录内容：</span>
+$ ls
+build_ffmpeg.sh  <span style=color:#66d9ef>do</span>-detect-env.sh  ffmpeg-4.4.tar.gz  config  ffmpeg-4.4
+
+$ cd ffmpeg-4.4 <span style=color:#f92672>&amp;&amp;</span> mkdir build <span style=color:#f92672>&amp;&amp;</span> cd build
+$ ../../build_ffmpeg.sh armv7a
+</code></pre></div><p>最后编译得到</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>$ tree -L <span style=color:#ae81ff>2</span> build
+build
+├── ffmpeg-armv7a
+│   ├── compat
+│   ├── config.h
+│   ├── doc
+│   ├── ffbuild
+│   ├── libavcodec
+│   ├── libavdevice
+│   ├── libavfilter
+│   ├── libavformat
+│   ├── libavutil
+│   ├── libswresample
+│   ├── libswscale
+│   ├── Makefile
+│   ├── output
+│   ├── src -&gt; /path_to_your_worksapce/ffmpeg-4.4
+│   └── tests
+└── toolchains
+    └── ffmpeg-armv7a
+
+<span style=color:#ae81ff>16</span> directories, <span style=color:#ae81ff>2</span> files
+</code></pre></div><p>其中，output目录为：</p><p>其中有后面要用的ffmpeg动态库和头文件。</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>$ tree output
+output
+├── config.h
+├── include 头文件
+│   ├── libavcodec 目录
+│   ├── libavfilter 目录
+│   ├── libavformat 目录
+│   ├── libavutil 目录
+│   ├── libffmpeg
+│   │   └── config.h
+│   ├── libswresample 目录
+│   └── libswscale 目录
+├── lib
+│   ├── libavcodec.a
+│   ├── libavfilter.a
+│   ├── libavformat.a
+│   ├── libavutil.a
+│   ├── libswresample.a
+│   ├── libswscale.a
+│   └── pkgconfig
+│       └── xxx.pc
+├── libandroidffmpeg.so
+├── share
+│   └── ffmpeg
+│   │   └── C文件
+└── shared
+    ├── include -&gt; /path_to_your_worksapce/ffmpeg-4.4/build/../build/ffmpeg-armv7a/output/include
+    └── lib
+        ├── libandroidffmpeg.so -&gt; /path_to_your_worksapce//ffmpeg-4.4/build/../build/ffmpeg-armv7a/output/libandroidffmpeg.so
+        └── pkgconfig
+            └── xxx.pc
+</code></pre></div></li></ul><p></p><h3 id=build_ffmpegsh文件>build_ffmpeg.sh文件<a hidden class=anchor aria-hidden=true href=#build_ffmpegsh文件>#</a></h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=color:#75715e>#! /usr/bin/env bash
+</span><span style=color:#75715e></span>#
+<span style=color:#75715e># Copyright (C) 2013-2014 Zhang Rui &lt;bbcallen@gmail.com&gt;</span>
+#
+<span style=color:#75715e># Licensed under the Apache License, Version 2.0 (the &#34;License&#34;);</span>
+<span style=color:#75715e># you may not use this file except in compliance with the License.</span>
+<span style=color:#75715e># You may obtain a copy of the License at</span>
+#
+<span style=color:#75715e>#      http://www.apache.org/licenses/LICENSE-2.0</span>
+#
+<span style=color:#75715e># Unless required by applicable law or agreed to in writing, software</span>
+<span style=color:#75715e># distributed under the License is distributed on an &#34;AS IS&#34; BASIS,</span>
+<span style=color:#75715e># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span style=color:#75715e># See the License for the specific language governing permissions and</span>
+<span style=color:#75715e># limitations under the License.</span>
+#
+
+<span style=color:#75715e># This script is based on projects below</span>
+<span style=color:#75715e># https://github.com/yixia/FFmpeg-Android</span>
+<span style=color:#75715e># http://git.videolan.org/?p=vlc-ports/android.git;a=summary</span>
+
+<span style=color:#75715e>#--------------------</span>
+echo <span style=color:#e6db74>&#34;====================&#34;</span>
+echo <span style=color:#e6db74>&#34;[*] check env </span>$1<span style=color:#e6db74>&#34;</span>
+echo <span style=color:#e6db74>&#34;====================&#34;</span>
+set -e
+
+ANDROID_NDK<span style=color:#f92672>=</span>$ANDROID_SDK_HOME/ndk/android-ndk-r14b
+ANDROID_NDK<span style=color:#f92672>=</span>$ANDROID_SDK_HOME/ndk/20.0.5594570
+
+<span style=color:#75715e>#--------------------</span>
+<span style=color:#75715e># common defines</span>
+FF_ARCH<span style=color:#f92672>=</span>$1
+FF_BUILD_OPT<span style=color:#f92672>=</span>$2
+echo <span style=color:#e6db74>&#34;FF_ARCH=</span>$FF_ARCH<span style=color:#e6db74>&#34;</span>
+echo <span style=color:#e6db74>&#34;FF_BUILD_OPT=</span>$FF_BUILD_OPT<span style=color:#e6db74>&#34;</span>
+<span style=color:#66d9ef>if</span> <span style=color:#f92672>[</span> -z <span style=color:#e6db74>&#34;</span>$FF_ARCH<span style=color:#e6db74>&#34;</span> <span style=color:#f92672>]</span>; <span style=color:#66d9ef>then</span>
+    echo <span style=color:#e6db74>&#34;You must specific an architecture &#39;arm, armv7a, x86, ...&#39;.&#34;</span>
+    echo <span style=color:#e6db74>&#34;&#34;</span>
+    exit <span style=color:#ae81ff>1</span>
+<span style=color:#66d9ef>fi</span>
+
+FF_TOOLCHAIN_ROOT<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;`pwd`/toolchains&#34;</span>
+FF_BUILD_ROOT<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;`pwd`/..&#34;</span>
+FF_ANDROID_PLATFORM<span style=color:#f92672>=</span>android-21
+
+
+FF_BUILD_NAME<span style=color:#f92672>=</span>
+FF_SOURCE<span style=color:#f92672>=</span>
+FF_CROSS_PREFIX<span style=color:#f92672>=</span>
+FF_DEP_OPENSSL_INC<span style=color:#f92672>=</span>
+FF_DEP_OPENSSL_LIB<span style=color:#f92672>=</span>
+
+FF_DEP_LIBSOXR_INC<span style=color:#f92672>=</span>
+FF_DEP_LIBSOXR_LIB<span style=color:#f92672>=</span>
+
+FF_CFG_FLAGS<span style=color:#f92672>=</span>
+
+FF_EXTRA_CFLAGS<span style=color:#f92672>=</span>
+FF_EXTRA_LDFLAGS<span style=color:#f92672>=</span>
+FF_DEP_LIBS<span style=color:#f92672>=</span>
+
+FF_MODULE_DIRS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;compat libavcodec libavfilter libavformat libavutil libswresample libswscale&#34;</span>
+FF_ASSEMBLER_SUB_DIRS<span style=color:#f92672>=</span>
+
+
+<span style=color:#75715e>#--------------------</span>
+echo <span style=color:#e6db74>&#34;&#34;</span>
+echo <span style=color:#e6db74>&#34;--------------------&#34;</span>
+echo <span style=color:#e6db74>&#34;[*] make NDK standalone toolchain&#34;</span>
+echo <span style=color:#e6db74>&#34;--------------------&#34;</span>
+. $FF_BUILD_ROOT/../do-detect-env.sh
+FF_MAKE_TOOLCHAIN_FLAGS<span style=color:#f92672>=</span>$IJK_MAKE_TOOLCHAIN_FLAGS
+FF_MAKE_FLAGS<span style=color:#f92672>=</span>$IJK_MAKE_FLAG
+FF_GCC_VER<span style=color:#f92672>=</span>$IJK_GCC_VER
+FF_GCC_64_VER<span style=color:#f92672>=</span>$IJK_GCC_64_VER
+
+
+<span style=color:#75715e>#----- armv7a begin -----</span>
+<span style=color:#66d9ef>if</span> <span style=color:#f92672>[</span> <span style=color:#e6db74>&#34;</span>$FF_ARCH<span style=color:#e6db74>&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;armv7a&#34;</span> <span style=color:#f92672>]</span>; <span style=color:#66d9ef>then</span>
+    FF_BUILD_NAME<span style=color:#f92672>=</span>ffmpeg-armv7a
+    FF_BUILD_NAME_OPENSSL<span style=color:#f92672>=</span>openssl-armv7a
+    FF_BUILD_NAME_LIBSOXR<span style=color:#f92672>=</span>libsoxr-armv7a
+
+    FF_CROSS_PREFIX<span style=color:#f92672>=</span>arm-linux-androideabi
+    FF_TOOLCHAIN_NAME<span style=color:#f92672>=</span><span style=color:#e6db74>${</span>FF_CROSS_PREFIX<span style=color:#e6db74>}</span>-<span style=color:#e6db74>${</span>FF_GCC_VER<span style=color:#e6db74>}</span>
+
+    FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_CFG_FLAGS<span style=color:#e6db74> --arch=arm --cpu=cortex-a8&#34;</span>
+    FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_CFG_FLAGS<span style=color:#e6db74> --enable-neon&#34;</span>
+    FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_CFG_FLAGS<span style=color:#e6db74> --enable-thumb&#34;</span>
+
+    FF_EXTRA_CFLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_EXTRA_CFLAGS<span style=color:#e6db74> -march=armv7-a -mcpu=cortex-a8 -mfpu=vfpv3-d16 -mfloat-abi=softfp -mthumb&#34;</span>
+    FF_EXTRA_LDFLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_EXTRA_LDFLAGS<span style=color:#e6db74> -Wl,--fix-cortex-a8&#34;</span>
+
+    FF_ASSEMBLER_SUB_DIRS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;arm&#34;</span>
+
+<span style=color:#66d9ef>elif</span> <span style=color:#f92672>[</span> <span style=color:#e6db74>&#34;</span>$FF_ARCH<span style=color:#e6db74>&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;armv5&#34;</span> <span style=color:#f92672>]</span>; <span style=color:#66d9ef>then</span>
+    FF_BUILD_NAME<span style=color:#f92672>=</span>ffmpeg-armv5
+    FF_BUILD_NAME_OPENSSL<span style=color:#f92672>=</span>openssl-armv5
+    FF_BUILD_NAME_LIBSOXR<span style=color:#f92672>=</span>libsoxr-armv5
+
+    FF_CROSS_PREFIX<span style=color:#f92672>=</span>arm-linux-androideabi
+    FF_TOOLCHAIN_NAME<span style=color:#f92672>=</span><span style=color:#e6db74>${</span>FF_CROSS_PREFIX<span style=color:#e6db74>}</span>-<span style=color:#e6db74>${</span>FF_GCC_VER<span style=color:#e6db74>}</span>
+
+    FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_CFG_FLAGS<span style=color:#e6db74> --arch=arm&#34;</span>
+
+    FF_EXTRA_CFLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_EXTRA_CFLAGS<span style=color:#e6db74> -march=armv5te -mtune=arm9tdmi -msoft-float&#34;</span>
+    FF_EXTRA_LDFLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_EXTRA_LDFLAGS<span style=color:#e6db74>&#34;</span>
+
+    FF_ASSEMBLER_SUB_DIRS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;arm&#34;</span>
+
+<span style=color:#66d9ef>elif</span> <span style=color:#f92672>[</span> <span style=color:#e6db74>&#34;</span>$FF_ARCH<span style=color:#e6db74>&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;x86&#34;</span> <span style=color:#f92672>]</span>; <span style=color:#66d9ef>then</span>
+    FF_BUILD_NAME<span style=color:#f92672>=</span>ffmpeg-x86
+    FF_BUILD_NAME_OPENSSL<span style=color:#f92672>=</span>openssl-x86
+    FF_BUILD_NAME_LIBSOXR<span style=color:#f92672>=</span>libsoxr-x86
+
+    FF_CROSS_PREFIX<span style=color:#f92672>=</span>i686-linux-android
+    FF_TOOLCHAIN_NAME<span style=color:#f92672>=</span>x86-<span style=color:#e6db74>${</span>FF_GCC_VER<span style=color:#e6db74>}</span>
+
+    FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_CFG_FLAGS<span style=color:#e6db74> --arch=x86 --cpu=i686 --enable-yasm&#34;</span>
+
+    FF_EXTRA_CFLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_EXTRA_CFLAGS<span style=color:#e6db74> -march=atom -msse3 -ffast-math -mfpmath=sse&#34;</span>
+    FF_EXTRA_LDFLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_EXTRA_LDFLAGS<span style=color:#e6db74>&#34;</span>
+
+    FF_ASSEMBLER_SUB_DIRS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;x86&#34;</span>
+
+<span style=color:#66d9ef>elif</span> <span style=color:#f92672>[</span> <span style=color:#e6db74>&#34;</span>$FF_ARCH<span style=color:#e6db74>&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;x86_64&#34;</span> <span style=color:#f92672>]</span>; <span style=color:#66d9ef>then</span>
+    FF_ANDROID_PLATFORM<span style=color:#f92672>=</span>android-21
+
+    FF_BUILD_NAME<span style=color:#f92672>=</span>ffmpeg-x86_64
+    FF_BUILD_NAME_OPENSSL<span style=color:#f92672>=</span>openssl-x86_64
+    FF_BUILD_NAME_LIBSOXR<span style=color:#f92672>=</span>libsoxr-x86_64
+
+    FF_CROSS_PREFIX<span style=color:#f92672>=</span>x86_64-linux-android
+    FF_TOOLCHAIN_NAME<span style=color:#f92672>=</span><span style=color:#e6db74>${</span>FF_CROSS_PREFIX<span style=color:#e6db74>}</span>-<span style=color:#e6db74>${</span>FF_GCC_64_VER<span style=color:#e6db74>}</span>
+
+    FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_CFG_FLAGS<span style=color:#e6db74> --arch=x86_64 --enable-yasm&#34;</span>
+
+    FF_EXTRA_CFLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_EXTRA_CFLAGS<span style=color:#e6db74>&#34;</span>
+    FF_EXTRA_LDFLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_EXTRA_LDFLAGS<span style=color:#e6db74>&#34;</span>
+
+    FF_ASSEMBLER_SUB_DIRS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;x86&#34;</span>
+
+<span style=color:#66d9ef>elif</span> <span style=color:#f92672>[</span> <span style=color:#e6db74>&#34;</span>$FF_ARCH<span style=color:#e6db74>&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;arm64&#34;</span> <span style=color:#f92672>]</span>; <span style=color:#66d9ef>then</span>
+    FF_ANDROID_PLATFORM<span style=color:#f92672>=</span>android-21
+
+    FF_BUILD_NAME<span style=color:#f92672>=</span>ffmpeg-arm64
+    FF_BUILD_NAME_OPENSSL<span style=color:#f92672>=</span>openssl-arm64
+    FF_BUILD_NAME_LIBSOXR<span style=color:#f92672>=</span>libsoxr-arm64
+
+    FF_CROSS_PREFIX<span style=color:#f92672>=</span>aarch64-linux-android
+    FF_TOOLCHAIN_NAME<span style=color:#f92672>=</span><span style=color:#e6db74>${</span>FF_CROSS_PREFIX<span style=color:#e6db74>}</span>-<span style=color:#e6db74>${</span>FF_GCC_64_VER<span style=color:#e6db74>}</span>
+
+    FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_CFG_FLAGS<span style=color:#e6db74> --arch=aarch64 --enable-yasm&#34;</span>
+
+    FF_EXTRA_CFLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_EXTRA_CFLAGS<span style=color:#e6db74>&#34;</span>
+    FF_EXTRA_LDFLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_EXTRA_LDFLAGS<span style=color:#e6db74>&#34;</span>
+
+    FF_ASSEMBLER_SUB_DIRS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;aarch64 neon&#34;</span>
+
+<span style=color:#66d9ef>else</span>
+    echo <span style=color:#e6db74>&#34;unknown architecture </span>$FF_ARCH<span style=color:#e6db74>&#34;</span>;
+    exit <span style=color:#ae81ff>1</span>
+<span style=color:#66d9ef>fi</span>
+
+FF_SOURCE<span style=color:#f92672>=</span>$FF_BUILD_ROOT
+BUILD_DIR<span style=color:#f92672>=</span>$FF_SOURCE/build/$FF_BUILD_NAME
+<span style=color:#66d9ef>if</span> <span style=color:#f92672>[</span> ! -d $FF_SOURCE <span style=color:#f92672>]</span>; <span style=color:#66d9ef>then</span>
+mkdir $BUILD_DIR
+<span style=color:#66d9ef>fi</span>
+<span style=color:#75715e># cd $BUILD_DIR</span>
+
+<span style=color:#66d9ef>if</span> <span style=color:#f92672>[</span> ! -d $FF_SOURCE <span style=color:#f92672>]</span>; <span style=color:#66d9ef>then</span>
+    echo <span style=color:#e6db74>&#34;&#34;</span>
+    echo <span style=color:#e6db74>&#34;!! ERROR&#34;</span>
+    echo <span style=color:#e6db74>&#34;!! Can not find FFmpeg directory for </span>$FF_BUILD_NAME<span style=color:#e6db74>&#34;</span>
+    echo <span style=color:#e6db74>&#34;!! Run &#39;sh init-android.sh&#39; first&#34;</span>
+    echo <span style=color:#e6db74>&#34;&#34;</span>
+    exit <span style=color:#ae81ff>1</span>
+<span style=color:#66d9ef>fi</span>
+
+FF_TOOLCHAIN_PATH<span style=color:#f92672>=</span>$FF_TOOLCHAIN_ROOT/$FF_BUILD_NAME
+FF_MAKE_TOOLCHAIN_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_MAKE_TOOLCHAIN_FLAGS<span style=color:#e6db74> --install-dir=</span>$FF_TOOLCHAIN_PATH<span style=color:#e6db74>&#34;</span>
+
+FF_SYSROOT<span style=color:#f92672>=</span>$FF_TOOLCHAIN_PATH/sysroot
+FF_PREFIX<span style=color:#f92672>=</span>$FF_BUILD_ROOT/build/$FF_BUILD_NAME/output
+FF_DEP_OPENSSL_INC<span style=color:#f92672>=</span>$FF_BUILD_ROOT/build/$FF_BUILD_NAME_OPENSSL/output/include
+FF_DEP_OPENSSL_LIB<span style=color:#f92672>=</span>$FF_BUILD_ROOT/build/$FF_BUILD_NAME_OPENSSL/output/lib
+FF_DEP_LIBSOXR_INC<span style=color:#f92672>=</span>$FF_BUILD_ROOT/build/$FF_BUILD_NAME_LIBSOXR/output/include
+FF_DEP_LIBSOXR_LIB<span style=color:#f92672>=</span>$FF_BUILD_ROOT/build/$FF_BUILD_NAME_LIBSOXR/output/lib
+
+<span style=color:#66d9ef>case</span> <span style=color:#e6db74>&#34;</span>$UNAME_S<span style=color:#e6db74>&#34;</span> in
+    CYGWIN_NT-*<span style=color:#f92672>)</span>
+        FF_SYSROOT<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span><span style=color:#66d9ef>$(</span>cygpath -am $FF_SYSROOT<span style=color:#66d9ef>)</span><span style=color:#e6db74>&#34;</span>
+        FF_PREFIX<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span><span style=color:#66d9ef>$(</span>cygpath -am $FF_PREFIX<span style=color:#66d9ef>)</span><span style=color:#e6db74>&#34;</span>
+    ;;
+<span style=color:#66d9ef>esac</span>
+
+
+mkdir -p $FF_PREFIX
+<span style=color:#75715e># mkdir -p $FF_SYSROOT</span>
+
+
+FF_TOOLCHAIN_TOUCH<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_TOOLCHAIN_PATH<span style=color:#e6db74>/touch&#34;</span>
+<span style=color:#66d9ef>if</span> <span style=color:#f92672>[</span> ! -f <span style=color:#e6db74>&#34;</span>$FF_TOOLCHAIN_TOUCH<span style=color:#e6db74>&#34;</span> <span style=color:#f92672>]</span>; <span style=color:#66d9ef>then</span>
+    $ANDROID_NDK/build/tools/make-standalone-toolchain.sh <span style=color:#ae81ff>\
+</span><span style=color:#ae81ff></span>        $FF_MAKE_TOOLCHAIN_FLAGS <span style=color:#ae81ff>\
+</span><span style=color:#ae81ff></span>        --platform<span style=color:#f92672>=</span>$FF_ANDROID_PLATFORM <span style=color:#ae81ff>\
+</span><span style=color:#ae81ff></span>        --toolchain<span style=color:#f92672>=</span>$FF_TOOLCHAIN_NAME
+    touch $FF_TOOLCHAIN_TOUCH;
+<span style=color:#66d9ef>fi</span>
+
+
+<span style=color:#75715e>#--------------------</span>
+echo <span style=color:#e6db74>&#34;&#34;</span>
+echo <span style=color:#e6db74>&#34;--------------------&#34;</span>
+echo <span style=color:#e6db74>&#34;[*] check ffmpeg env&#34;</span>
+echo <span style=color:#e6db74>&#34;--------------------&#34;</span>
+export PATH<span style=color:#f92672>=</span>$FF_TOOLCHAIN_PATH/bin/:$PATH
+<span style=color:#75715e>#export CC=&#34;ccache ${FF_CROSS_PREFIX}-gcc&#34;</span>
+export CC<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span><span style=color:#e6db74>${</span>FF_CROSS_PREFIX<span style=color:#e6db74>}</span><span style=color:#e6db74>-gcc&#34;</span>
+export LD<span style=color:#f92672>=</span><span style=color:#e6db74>${</span>FF_CROSS_PREFIX<span style=color:#e6db74>}</span>-ld
+export AR<span style=color:#f92672>=</span><span style=color:#e6db74>${</span>FF_CROSS_PREFIX<span style=color:#e6db74>}</span>-ar
+export STRIP<span style=color:#f92672>=</span><span style=color:#e6db74>${</span>FF_CROSS_PREFIX<span style=color:#e6db74>}</span>-strip
+
+FF_CFLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;-O3 -Wall -pipe \
+</span><span style=color:#e6db74>    -std=c99 \
+</span><span style=color:#e6db74>    -ffast-math \
+</span><span style=color:#e6db74>    -fstrict-aliasing -Werror=strict-aliasing \
+</span><span style=color:#e6db74>    -Wno-psabi -Wa,--noexecstack \
+</span><span style=color:#e6db74>    -DANDROID -DNDEBUG&#34;</span>
+
+<span style=color:#75715e># cause av_strlcpy crash with gcc4.7, gcc4.8</span>
+<span style=color:#75715e># -fmodulo-sched -fmodulo-sched-allow-regmoves</span>
+
+<span style=color:#75715e># --enable-thumb is OK</span>
+<span style=color:#75715e>#FF_CFLAGS=&#34;$FF_CFLAGS -mthumb&#34;</span>
+
+<span style=color:#75715e># not necessary</span>
+<span style=color:#75715e>#FF_CFLAGS=&#34;$FF_CFLAGS -finline-limit=300&#34;</span>
+
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span>
+. $FF_BUILD_ROOT/../config/module.sh
+
+
+<span style=color:#75715e>#--------------------</span>
+<span style=color:#75715e># with openssl</span>
+<span style=color:#66d9ef>if</span> <span style=color:#f92672>[</span> -f <span style=color:#e6db74>&#34;</span><span style=color:#e6db74>${</span>FF_DEP_OPENSSL_LIB<span style=color:#e6db74>}</span><span style=color:#e6db74>/libssl.a&#34;</span> <span style=color:#f92672>]</span>; <span style=color:#66d9ef>then</span>
+    echo <span style=color:#e6db74>&#34;OpenSSL detected&#34;</span>
+<span style=color:#75715e># FF_CFG_FLAGS=&#34;$FF_CFG_FLAGS --enable-nonfree&#34;</span>
+    FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_CFG_FLAGS<span style=color:#e6db74> --enable-openssl&#34;</span>
+
+    FF_CFLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_CFLAGS<span style=color:#e6db74> -I</span><span style=color:#e6db74>${</span>FF_DEP_OPENSSL_INC<span style=color:#e6db74>}</span><span style=color:#e6db74>&#34;</span>
+    FF_DEP_LIBS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_DEP_LIBS<span style=color:#e6db74> -L</span><span style=color:#e6db74>${</span>FF_DEP_OPENSSL_LIB<span style=color:#e6db74>}</span><span style=color:#e6db74> -lssl -lcrypto&#34;</span>
+<span style=color:#66d9ef>fi</span>
+
+<span style=color:#66d9ef>if</span> <span style=color:#f92672>[</span> -f <span style=color:#e6db74>&#34;</span><span style=color:#e6db74>${</span>FF_DEP_LIBSOXR_LIB<span style=color:#e6db74>}</span><span style=color:#e6db74>/libsoxr.a&#34;</span> <span style=color:#f92672>]</span>; <span style=color:#66d9ef>then</span>
+    echo <span style=color:#e6db74>&#34;libsoxr detected&#34;</span>
+    FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_CFG_FLAGS<span style=color:#e6db74> --enable-libsoxr&#34;</span>
+
+    FF_CFLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_CFLAGS<span style=color:#e6db74> -I</span><span style=color:#e6db74>${</span>FF_DEP_LIBSOXR_INC<span style=color:#e6db74>}</span><span style=color:#e6db74>&#34;</span>
+    FF_DEP_LIBS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_DEP_LIBS<span style=color:#e6db74> -L</span><span style=color:#e6db74>${</span>FF_DEP_LIBSOXR_LIB<span style=color:#e6db74>}</span><span style=color:#e6db74> -lsoxr&#34;</span>
+<span style=color:#66d9ef>fi</span>
+
+FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_CFG_FLAGS<span style=color:#e6db74> </span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74>&#34;</span>
+
+<span style=color:#75715e>#--------------------</span>
+<span style=color:#75715e># Standard options:</span>
+FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_CFG_FLAGS<span style=color:#e6db74> --prefix=</span>$FF_PREFIX<span style=color:#e6db74>&#34;</span>
+
+<span style=color:#75715e># Advanced options (experts only):</span>
+FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_CFG_FLAGS<span style=color:#e6db74> --cross-prefix=</span><span style=color:#e6db74>${</span>FF_CROSS_PREFIX<span style=color:#e6db74>}</span><span style=color:#e6db74>-&#34;</span>
+FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_CFG_FLAGS<span style=color:#e6db74> --enable-cross-compile&#34;</span>
+FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_CFG_FLAGS<span style=color:#e6db74> --target-os=linux&#34;</span>
+FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_CFG_FLAGS<span style=color:#e6db74> --enable-pic&#34;</span>
+<span style=color:#75715e># FF_CFG_FLAGS=&#34;$FF_CFG_FLAGS --disable-symver&#34;</span>
+
+<span style=color:#66d9ef>if</span> <span style=color:#f92672>[</span> <span style=color:#e6db74>&#34;</span>$FF_ARCH<span style=color:#e6db74>&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;x86&#34;</span> <span style=color:#f92672>]</span>; <span style=color:#66d9ef>then</span>
+    FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_CFG_FLAGS<span style=color:#e6db74> --disable-asm&#34;</span>
+<span style=color:#66d9ef>else</span>
+    <span style=color:#75715e># Optimization options (experts only):</span>
+    FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_CFG_FLAGS<span style=color:#e6db74> --enable-asm&#34;</span>
+    FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_CFG_FLAGS<span style=color:#e6db74> --enable-inline-asm&#34;</span>
+<span style=color:#66d9ef>fi</span>
+
+<span style=color:#66d9ef>case</span> <span style=color:#e6db74>&#34;</span>$FF_BUILD_OPT<span style=color:#e6db74>&#34;</span> in
+    debug<span style=color:#f92672>)</span>
+        FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_CFG_FLAGS<span style=color:#e6db74> --disable-optimizations&#34;</span>
+        FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_CFG_FLAGS<span style=color:#e6db74> --enable-debug&#34;</span>
+        FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_CFG_FLAGS<span style=color:#e6db74> --disable-small&#34;</span>
+    ;;
+    *<span style=color:#f92672>)</span>
+        FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_CFG_FLAGS<span style=color:#e6db74> --enable-optimizations&#34;</span>
+        FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_CFG_FLAGS<span style=color:#e6db74> --enable-debug&#34;</span>
+        FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_CFG_FLAGS<span style=color:#e6db74> --enable-small&#34;</span>
+    ;;
+<span style=color:#66d9ef>esac</span>
+
+<span style=color:#75715e>#--------------------</span>
+echo <span style=color:#e6db74>&#34;&#34;</span>
+echo <span style=color:#e6db74>&#34;--------------------&#34;</span>
+echo <span style=color:#e6db74>&#34;[*] configurate ffmpeg&#34;</span>
+echo <span style=color:#e6db74>&#34;--------------------&#34;</span>
+cd $FF_SOURCE
+<span style=color:#66d9ef>if</span> <span style=color:#f92672>[</span> -f <span style=color:#e6db74>&#34;./config.h&#34;</span> <span style=color:#f92672>]</span>; <span style=color:#66d9ef>then</span>
+    echo <span style=color:#e6db74>&#39;reuse configure&#39;</span>
+<span style=color:#66d9ef>else</span>
+    which $CC
+    cd $BUILD_DIR
+    ../../configure $FF_CFG_FLAGS <span style=color:#ae81ff>\
+</span><span style=color:#ae81ff></span>        --extra-cflags<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_CFLAGS<span style=color:#e6db74> </span>$FF_EXTRA_CFLAGS<span style=color:#e6db74>&#34;</span> <span style=color:#ae81ff>\
+</span><span style=color:#ae81ff></span>        --extra-ldflags<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_DEP_LIBS<span style=color:#e6db74> </span>$FF_EXTRA_LDFLAGS<span style=color:#e6db74>&#34;</span>
+    make clean
+    cd $FF_BUILD_ROOT/build
+<span style=color:#66d9ef>fi</span>
+
+<span style=color:#75715e>#--------------------</span>
+echo <span style=color:#e6db74>&#34;&#34;</span>
+echo <span style=color:#e6db74>&#34;--------------------&#34;</span>
+echo <span style=color:#e6db74>&#34;[*] compile ffmpeg&#34;</span>
+echo <span style=color:#e6db74>&#34;--------------------&#34;</span>
+cd $BUILD_DIR
+cp config.* $FF_PREFIX
+make $FF_MAKE_FLAGS &gt; /dev/null
+make install
+mkdir -p $FF_PREFIX/include/libffmpeg
+cp -f config.h $FF_PREFIX/include/libffmpeg/config.h
+cd $FF_BUILD_ROOT/build
+
+<span style=color:#75715e>#--------------------</span>
+echo <span style=color:#e6db74>&#34;&#34;</span>
+echo <span style=color:#e6db74>&#34;--------------------&#34;</span>
+echo <span style=color:#e6db74>&#34;[*] link ffmpeg&#34;</span>
+echo <span style=color:#e6db74>&#34;--------------------&#34;</span>
+echo $FF_EXTRA_LDFLAGS
+
+FF_C_OBJ_FILES<span style=color:#f92672>=</span>
+FF_ASM_OBJ_FILES<span style=color:#f92672>=</span>
+<span style=color:#66d9ef>for</span> MODULE_DIR in $FF_MODULE_DIRS
+<span style=color:#66d9ef>do</span>
+    C_OBJ_FILES<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$MODULE_DIR<span style=color:#e6db74>/*.o&#34;</span>
+    <span style=color:#66d9ef>if</span> ls $C_OBJ_FILES 1&gt; /dev/null 2&gt;&amp;1; <span style=color:#66d9ef>then</span>
+        echo <span style=color:#e6db74>&#34;link </span>$MODULE_DIR<span style=color:#e6db74>/*.o&#34;</span>
+        FF_C_OBJ_FILES<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_C_OBJ_FILES<span style=color:#e6db74> </span>$C_OBJ_FILES<span style=color:#e6db74>&#34;</span>
+    <span style=color:#66d9ef>fi</span>
+
+    <span style=color:#66d9ef>for</span> ASM_SUB_DIR in $FF_ASSEMBLER_SUB_DIRS
+    <span style=color:#66d9ef>do</span>
+        ASM_OBJ_FILES<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$MODULE_DIR<span style=color:#e6db74>/</span>$ASM_SUB_DIR<span style=color:#e6db74>/*.o&#34;</span>
+        <span style=color:#66d9ef>if</span> ls $ASM_OBJ_FILES 1&gt; /dev/null 2&gt;&amp;1; <span style=color:#66d9ef>then</span>
+            echo <span style=color:#e6db74>&#34;link </span>$MODULE_DIR<span style=color:#e6db74>/</span>$ASM_SUB_DIR<span style=color:#e6db74>/*.o&#34;</span>
+            FF_ASM_OBJ_FILES<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$FF_ASM_OBJ_FILES<span style=color:#e6db74> </span>$ASM_OBJ_FILES<span style=color:#e6db74>&#34;</span>
+        <span style=color:#66d9ef>fi</span>
+    <span style=color:#66d9ef>done</span>
+<span style=color:#66d9ef>done</span>
+
+$CC -lm -lz -shared --sysroot<span style=color:#f92672>=</span>$FF_SYSROOT -Wl,--no-undefined -Wl,-z,noexecstack $FF_EXTRA_LDFLAGS <span style=color:#ae81ff>\
+</span><span style=color:#ae81ff></span>    -Wl,-soname,libandroidffmpeg.so <span style=color:#ae81ff>\
+</span><span style=color:#ae81ff></span>    $FF_C_OBJ_FILES <span style=color:#ae81ff>\
+</span><span style=color:#ae81ff></span>    $FF_ASM_OBJ_FILES <span style=color:#ae81ff>\
+</span><span style=color:#ae81ff></span>    $FF_DEP_LIBS <span style=color:#ae81ff>\
+</span><span style=color:#ae81ff></span>    -o $FF_PREFIX/libandroidffmpeg.so
+
+mysedi<span style=color:#f92672>()</span> <span style=color:#f92672>{</span>
+    f<span style=color:#f92672>=</span>$1
+    exp<span style=color:#f92672>=</span>$2
+    n<span style=color:#f92672>=</span><span style=color:#e6db74>`</span>basename $f<span style=color:#e6db74>`</span>
+    cp $f /tmp/$n
+    sed $exp /tmp/$n &gt; $f
+    rm /tmp/$n
+<span style=color:#f92672>}</span>
+
+echo <span style=color:#e6db74>&#34;&#34;</span>
+echo <span style=color:#e6db74>&#34;--------------------&#34;</span>
+echo <span style=color:#e6db74>&#34;[*] create files for shared ffmpeg&#34;</span>
+echo <span style=color:#e6db74>&#34;--------------------&#34;</span>
+rm -rf $FF_PREFIX/shared
+mkdir -p $FF_PREFIX/shared/lib/pkgconfig
+ln -s $FF_PREFIX/include $FF_PREFIX/shared/include
+ln -s $FF_PREFIX/libandroidffmpeg.so $FF_PREFIX/shared/lib/libandroidffmpeg.so
+cp $FF_PREFIX/lib/pkgconfig/*.pc $FF_PREFIX/shared/lib/pkgconfig
+<span style=color:#66d9ef>for</span> f in $FF_PREFIX/lib/pkgconfig/*.pc; <span style=color:#66d9ef>do</span>
+    <span style=color:#75715e># in case empty dir</span>
+    <span style=color:#66d9ef>if</span> <span style=color:#f92672>[</span> ! -f $f <span style=color:#f92672>]</span>; <span style=color:#66d9ef>then</span>
+        <span style=color:#66d9ef>continue</span>
+    <span style=color:#66d9ef>fi</span>
+    cp $f $FF_PREFIX/shared/lib/pkgconfig
+    f<span style=color:#f92672>=</span>$FF_PREFIX/shared/lib/pkgconfig/<span style=color:#e6db74>`</span>basename $f<span style=color:#e6db74>`</span>
+    <span style=color:#75715e># OSX sed doesn&#39;t have in-place(-i)</span>
+    mysedi $f <span style=color:#e6db74>&#39;s/\/output/\/output\/shared/g&#39;</span>
+    mysedi $f <span style=color:#e6db74>&#39;s/-lavcodec/-landroidffmpeg/g&#39;</span>
+    mysedi $f <span style=color:#e6db74>&#39;s/-lavfilter/-landroidffmpeg/g&#39;</span>
+    mysedi $f <span style=color:#e6db74>&#39;s/-lavformat/-landroidffmpeg/g&#39;</span>
+    mysedi $f <span style=color:#e6db74>&#39;s/-lavutil/-landroidffmpeg/g&#39;</span>
+    mysedi $f <span style=color:#e6db74>&#39;s/-lswresample/-landroidffmpeg/g&#39;</span>
+    mysedi $f <span style=color:#e6db74>&#39;s/-lswscale/-landroidffmpeg/g&#39;</span>
+<span style=color:#66d9ef>done</span>
+</code></pre></div><p></p><h3 id=do-detect-envsh文件>do-detect-env.sh文件<a hidden class=anchor aria-hidden=true href=#do-detect-envsh文件>#</a></h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=color:#75715e>#! /usr/bin/env bash
+</span><span style=color:#75715e></span>#
+<span style=color:#75715e># Copyright (C) 2013-2014 Zhang Rui &lt;bbcallen@gmail.com&gt;</span>
+#
+<span style=color:#75715e># Licensed under the Apache License, Version 2.0 (the &#34;License&#34;);</span>
+<span style=color:#75715e># you may not use this file except in compliance with the License.</span>
+<span style=color:#75715e># You may obtain a copy of the License at</span>
+#
+<span style=color:#75715e>#      http://www.apache.org/licenses/LICENSE-2.0</span>
+#
+<span style=color:#75715e># Unless required by applicable law or agreed to in writing, software</span>
+<span style=color:#75715e># distributed under the License is distributed on an &#34;AS IS&#34; BASIS,</span>
+<span style=color:#75715e># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span style=color:#75715e># See the License for the specific language governing permissions and</span>
+<span style=color:#75715e># limitations under the License.</span>
+#
+
+<span style=color:#75715e># This script is based on projects below</span>
+<span style=color:#75715e># https://github.com/yixia/FFmpeg-Android</span>
+<span style=color:#75715e># http://git.videolan.org/?p=vlc-ports/android.git;a=summary</span>
+
+<span style=color:#75715e>#--------------------</span>
+set -e
+
+UNAME_S<span style=color:#f92672>=</span><span style=color:#66d9ef>$(</span>uname -s<span style=color:#66d9ef>)</span>
+UNAME_SM<span style=color:#f92672>=</span><span style=color:#66d9ef>$(</span>uname -sm<span style=color:#66d9ef>)</span>
+echo <span style=color:#e6db74>&#34;build on </span>$UNAME_SM<span style=color:#e6db74>&#34;</span>
+
+echo <span style=color:#e6db74>&#34;ANDROID_NDK=</span>$ANDROID_NDK<span style=color:#e6db74>&#34;</span>
+
+<span style=color:#66d9ef>if</span> <span style=color:#f92672>[</span> -z <span style=color:#e6db74>&#34;</span>$ANDROID_NDK<span style=color:#e6db74>&#34;</span> <span style=color:#f92672>]</span>; <span style=color:#66d9ef>then</span>
+    echo <span style=color:#e6db74>&#34;You must define ANDROID_NDK before starting.&#34;</span>
+    echo <span style=color:#e6db74>&#34;They must point to your NDK directories.&#34;</span>
+    echo <span style=color:#e6db74>&#34;&#34;</span>
+    exit <span style=color:#ae81ff>1</span>
+<span style=color:#66d9ef>fi</span>
+
+
+
+<span style=color:#75715e># try to detect NDK version</span>
+export IJK_GCC_VER<span style=color:#f92672>=</span>4.9
+export IJK_GCC_64_VER<span style=color:#f92672>=</span>4.9
+export IJK_MAKE_TOOLCHAIN_FLAGS<span style=color:#f92672>=</span>
+export IJK_MAKE_FLAG<span style=color:#f92672>=</span>
+export IJK_NDK_REL<span style=color:#f92672>=</span><span style=color:#66d9ef>$(</span>grep -o <span style=color:#e6db74>&#39;^r[0-9]*.*&#39;</span> $ANDROID_NDK/RELEASE.TXT 2&gt;/dev/null | sed <span style=color:#e6db74>&#39;s/[[:space:]]*//g&#39;</span> | cut -b2-<span style=color:#66d9ef>)</span>
+<span style=color:#66d9ef>case</span> <span style=color:#e6db74>&#34;</span>$IJK_NDK_REL<span style=color:#e6db74>&#34;</span> in
+    10e*<span style=color:#f92672>)</span>
+        <span style=color:#75715e># we don&#39;t use 4.4.3 because it doesn&#39;t handle threads correctly.</span>
+        <span style=color:#66d9ef>if</span> test -d <span style=color:#e6db74>${</span>ANDROID_NDK<span style=color:#e6db74>}</span>/toolchains/arm-linux-androideabi-4.8
+        <span style=color:#75715e># if gcc 4.8 is present, it&#39;s there for all the archs (x86, mips, arm)</span>
+        <span style=color:#66d9ef>then</span>
+            echo <span style=color:#e6db74>&#34;NDKr</span>$IJK_NDK_REL<span style=color:#e6db74> detected&#34;</span>
+
+            <span style=color:#66d9ef>case</span> <span style=color:#e6db74>&#34;</span>$UNAME_S<span style=color:#e6db74>&#34;</span> in
+                Darwin<span style=color:#f92672>)</span>
+                    export IJK_MAKE_TOOLCHAIN_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$IJK_MAKE_TOOLCHAIN_FLAGS<span style=color:#e6db74> --system=darwin-x86_64&#34;</span>
+                ;;
+                CYGWIN_NT-*<span style=color:#f92672>)</span>
+                    export IJK_MAKE_TOOLCHAIN_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$IJK_MAKE_TOOLCHAIN_FLAGS<span style=color:#e6db74> --system=windows-x86_64&#34;</span>
+                ;;
+            <span style=color:#66d9ef>esac</span>
+        <span style=color:#66d9ef>else</span>
+            echo <span style=color:#e6db74>&#34;You need the NDKr10e or later&#34;</span>
+            exit <span style=color:#ae81ff>1</span>
+        <span style=color:#66d9ef>fi</span>
+    ;;
+    *<span style=color:#f92672>)</span>
+        IJK_NDK_REL<span style=color:#f92672>=</span><span style=color:#66d9ef>$(</span>grep -o <span style=color:#e6db74>&#39;^Pkg\.Revision.*=[0-9]*.*&#39;</span> $ANDROID_NDK/source.properties 2&gt;/dev/null | sed <span style=color:#e6db74>&#39;s/[[:space:]]*//g&#39;</span> | cut -d <span style=color:#e6db74>&#34;=&#34;</span> -f 2<span style=color:#66d9ef>)</span>
+        echo <span style=color:#e6db74>&#34;IJK_NDK_REL=</span>$IJK_NDK_REL<span style=color:#e6db74>&#34;</span>
+        <span style=color:#66d9ef>case</span> <span style=color:#e6db74>&#34;</span>$IJK_NDK_REL<span style=color:#e6db74>&#34;</span> in
+            11*|12*|13*|14*|16*|20*<span style=color:#f92672>)</span>
+                <span style=color:#66d9ef>if</span> test -d <span style=color:#e6db74>${</span>ANDROID_NDK<span style=color:#e6db74>}</span>/toolchains/arm-linux-androideabi-4.9
+                <span style=color:#66d9ef>then</span>
+                    echo <span style=color:#e6db74>&#34;NDKr</span>$IJK_NDK_REL<span style=color:#e6db74> detected&#34;</span>
+                <span style=color:#66d9ef>else</span>
+                    echo <span style=color:#e6db74>&#34;You need the NDKr10e or later&#34;</span>
+                    exit <span style=color:#ae81ff>1</span>
+                <span style=color:#66d9ef>fi</span>
+            ;;
+            *<span style=color:#f92672>)</span>
+                echo <span style=color:#e6db74>&#34;You need the NDKr10e or later&#34;</span>
+                exit <span style=color:#ae81ff>1</span>
+            ;;
+        <span style=color:#66d9ef>esac</span>
+    ;;
+<span style=color:#66d9ef>esac</span>
+
+
+<span style=color:#66d9ef>case</span> <span style=color:#e6db74>&#34;</span>$UNAME_S<span style=color:#e6db74>&#34;</span> in
+    Linux<span style=color:#f92672>)</span>
+        export IJK_MAKE_FLAG<span style=color:#f92672>=</span>-j<span style=color:#e6db74>`</span>nproc<span style=color:#e6db74>`</span>
+    ;;
+    Darwin<span style=color:#f92672>)</span>
+        export IJK_MAKE_FLAG<span style=color:#f92672>=</span>-j<span style=color:#e6db74>`</span>sysctl -n machdep.cpu.thread_count<span style=color:#e6db74>`</span>
+    ;;
+    CYGWIN_NT-*<span style=color:#f92672>)</span>
+        IJK_WIN_TEMP<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span><span style=color:#66d9ef>$(</span>cygpath -am /tmp<span style=color:#66d9ef>)</span><span style=color:#e6db74>&#34;</span>
+        export TEMPDIR<span style=color:#f92672>=</span>$IJK_WIN_TEMP/
+
+        echo <span style=color:#e6db74>&#34;Cygwin temp prefix=</span>$IJK_WIN_TEMP<span style=color:#e6db74>/&#34;</span>
+    ;;
+<span style=color:#66d9ef>esac</span>
+</code></pre></div><p></p><h3 id=module-litesh文件>module-lite.sh文件<a hidden class=anchor aria-hidden=true href=#module-litesh文件>#</a></h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=color:#75715e>#! /usr/bin/env bash
+</span><span style=color:#75715e></span>
+<span style=color:#75715e>#--------------------</span>
+<span style=color:#75715e># Standard options:</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --prefix=PREFIX&#34;</span>
+
+<span style=color:#75715e># Licensing options:</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-gpl&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --enable-version3&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-nonfree&#34;</span>
+
+<span style=color:#75715e># Configuration options:</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-static&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --enable-shared&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --enable-small&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-runtime-cpudetect&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-gray&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-swscale-alpha&#34;</span>
+
+<span style=color:#75715e># Program options:</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-programs&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-ffmpeg&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-ffplay&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-ffprobe&#34;</span>
+<span style=color:#75715e>#export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-ffserver&#34;</span>
+
+<span style=color:#75715e># Documentation options:</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-doc&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-htmlpages&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-manpages&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-podpages&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-txtpages&#34;</span>
+
+<span style=color:#75715e># Component options:</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-avdevice&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-avcodec&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-avformat&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-avutil&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-swresample&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-swscale&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-postproc&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-avfilter&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-avresample&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-pthreads&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-w32threads&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-os2threads&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-network&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-dct&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-dwt&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-lsp&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-lzo&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-mdct&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-rdft&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-fft&#34;</span>
+
+<span style=color:#75715e># Hardware accelerators:</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-d3d11va&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-dxva2&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-vaapi&#34;</span>
+<span style=color:#75715e>#export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-vda&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-vdpau&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-videotoolbox&#34;</span>
+
+<span style=color:#75715e># Individual component options:</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-everything&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-encoders&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-encoder=png&#34;</span>
+
+<span style=color:#75715e># ./configure --list-decoders</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-decoders&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-decoder=aac&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-decoder=aac_latm&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-decoder=flv&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-decoder=h264&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-decoder=mp3*&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-decoder=vp6f&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-decoder=flac&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-decoder=hevc&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-decoder=vp8&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-decoder=vp9&#34;</span>
+
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-hwaccels&#34;</span>
+
+<span style=color:#75715e># ./configure --list-muxers</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-muxers&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-muxer=mp4&#34;</span>
+
+<span style=color:#75715e># ./configure --list-demuxers</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-demuxers&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-demuxer=ijk*&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-demuxer=aac&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-demuxer=concat&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-demuxer=data&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-demuxer=flv&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-demuxer=hls&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-demuxer=live_flv&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-demuxer=mov&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-demuxer=mp3&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-demuxer=mpegps&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-demuxer=mpegts&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-demuxer=mpegvideo&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-demuxer=flac&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-demuxer=hevc&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-demuxer=webm_dash_manifest&#34;</span>
+
+<span style=color:#75715e># ./configure --list-parsers</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-parsers&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-parser=aac&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-parser=aac_latm&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-parser=h264&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-parser=flac&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-parser=hevc&#34;</span>
+
+<span style=color:#75715e># ./configure --list-bsf</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-bsfs&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-bsf=chomp&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-bsf=dca_core&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-bsf=dump_extradata&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-bsf=hevc_mp4toannexb&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-bsf=imx_dump_header&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-bsf=mjpeg2jpeg&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-bsf=mjpega_dump_header&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-bsf=mov2textsub&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-bsf=mp3_header_decompress&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-bsf=mpeg4_unpack_bframes&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-bsf=noise&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-bsf=remove_extradata&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-bsf=text2movsub&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-bsf=vp9_superframe&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-bsf=eac3_core&#34;</span>
+
+<span style=color:#75715e># ./configure --list-protocols</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-protocols&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-protocol=async&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-protocol=bluray&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-protocol=concat&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-protocol=crypto&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-protocol=ffrtmpcrypt&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-protocol=ffrtmphttp&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-protocol=gopher&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-protocol=icecast&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-protocol=librtmp*&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-protocol=libssh&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-protocol=md5&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-protocol=mmsh&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-protocol=mmst&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-protocol=rtmp*&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-protocol=rtmp&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --enable-protocol=rtmpt&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-protocol=rtp&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-protocol=sctp&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-protocol=srtp&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-protocol=subfile&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-protocol=unix&#34;</span>
+
+#
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-devices&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-filters&#34;</span>
+
+<span style=color:#75715e># External library support:</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-iconv&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-audiotoolbox&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-videotoolbox&#34;</span>
+
+<span style=color:#75715e># ...</span>
+
+<span style=color:#75715e># Advanced options (experts only):</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --cross-prefix=${FF_CROSS_PREFIX}-&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --enable-cross-compile&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --sysroot=PATH&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --sysinclude=PATH&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --target-os=TAGET_OS&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --target-exec=CMD&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --target-path=DIR&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --toolchain=NAME&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --nm=NM&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --ar=AR&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --as=AS&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --yasmexe=EXE&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --cc=CC&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --cxx=CXX&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --dep-cc=DEPCC&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --ld=LD&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --host-cc=HOSTCC&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --host-cflags=HCFLAGS&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --host-cppflags=HCPPFLAGS&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --host-ld=HOSTLD&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --host-ldflags=HLDFLAGS&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --host-libs=HLIBS&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --host-os=OS&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --extra-cflags=ECFLAGS&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --extra-cxxflags=ECFLAGS&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --extra-ldflags=ELDFLAGS&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --extra-libs=ELIBS&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --extra-version=STRING&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --optflags=OPTFLAGS&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --build-suffix=SUFFIX&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --malloc-prefix=PREFIX&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --progs-suffix=SUFFIX&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --arch=ARCH&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --cpu=CPU&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --enable-pic&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --enable-sram&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --enable-thumb&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-symver&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --enable-hardcoded-tables&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-safe-bitstream-reader&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --enable-memalign-hack&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --enable-lto&#34;</span>
+
+<span style=color:#75715e># Optimization options (experts only):</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --enable-asm&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-altivec&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-amd3dnow&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-amd3dnowext&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-mmx&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-mmxext&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-sse&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-sse2&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-sse3&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-ssse3&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-sse4&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-sse42&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-avx&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-fma4&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-armv5te&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-armv6&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-armv6t2&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-vfp&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-neon&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-vis&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --enable-inline-asm&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-yasm&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-mips32r2&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-mipsdspr1&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-mipsdspr2&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-mipsfpu&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-fast-unaligned&#34;</span>
+
+<span style=color:#75715e># Developer options (useful when working on FFmpeg itself):</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --enable-coverage&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-debug&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --enable-debug=LEVEL&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-optimizations&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --enable-extra-warnings&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-stripping&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --assert-level=level&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --enable-memory-poisoning&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --valgrind=VALGRIND&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --enable-ftrapv&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --samples=PATH&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --enable-xmm-clobber-test&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --enable-random&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-random&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --enable-random=LIST&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --disable-random=LIST&#34;</span>
+<span style=color:#75715e># export COMMON_FF_CFG_FLAGS=&#34;$COMMON_FF_CFG_FLAGS --random-seed=VALUE&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-linux-perf&#34;</span>
+export COMMON_FF_CFG_FLAGS<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;</span>$COMMON_FF_CFG_FLAGS<span style=color:#e6db74> --disable-bzlib&#34;</span>
+</code></pre></div></div><footer class=post-footer><ul class=post-tags></ul><nav class=paginav><a class=next href=https://xing2387.github.io/posts/automake/2.4-hello-world/><span class=title>Next Page »</span><br><span>[gnu-automake-manual] 2.4. Hello World</span></a></nav><div class=share-buttons><a target=_blank rel="noopener noreferrer" aria-label="share [port-ffmpeg-to-Android] 交叉编译Android下的ffmpeg on twitter" href="https://twitter.com/intent/tweet/?text=%5bport-ffmpeg-to-Android%5d%20%e4%ba%a4%e5%8f%89%e7%bc%96%e8%af%91Android%e4%b8%8b%e7%9a%84ffmpeg&url=https%3a%2f%2fxing2387.github.io%2fposts%2fandroidffmpeg%2fport-ffmpeg-to-android%2f&hashtags=notes%2cport-ffmpeg-to-Android%2cffmpeg"><svg viewBox="0 0 512 512"><path d="M449.446.0C483.971.0 512 28.03 512 62.554v386.892C512 483.97 483.97 512 449.446 512h-386.892c-34.524.0-62.554-28.03-62.554-62.554v-386.892c0-34.524 28.029-62.554 62.554-62.554h386.892zm-253.927 424.544c135.939.0 210.268-112.643 210.268-210.268.0-3.218.0-6.437-.153-9.502 14.406-10.421 26.973-23.448 36.935-38.314-13.18 5.824-27.433 9.809-42.452 11.648 15.326-9.196 26.973-23.602 32.49-40.92-14.252 8.429-30.038 14.56-46.896 17.931-13.487-14.406-32.644-23.295-53.946-23.295-40.767.0-73.87 33.104-73.87 73.87.0 5.824.613 11.494 1.992 16.858-61.456-3.065-115.862-32.49-152.337-77.241-6.284 10.881-9.962 23.601-9.962 37.088.0 25.594 13.027 48.276 32.95 61.456-12.107-.307-23.448-3.678-33.41-9.196v.92c0 35.862 25.441 65.594 59.311 72.49-6.13 1.686-12.72 2.606-19.464 2.606-4.751.0-9.348-.46-13.946-1.38 9.349 29.426 36.628 50.728 68.965 51.341-25.287 19.771-57.164 31.571-91.8 31.571-5.977.0-11.801-.306-17.625-1.073 32.337 21.15 71.264 33.41 112.95 33.41z" /></svg></a><a target=_blank rel="noopener noreferrer" aria-label="share [port-ffmpeg-to-Android] 交叉编译Android下的ffmpeg on linkedin" href="https://www.linkedin.com/shareArticle?mini=true&url=https%3a%2f%2fxing2387.github.io%2fposts%2fandroidffmpeg%2fport-ffmpeg-to-android%2f&title=%5bport-ffmpeg-to-Android%5d%20%e4%ba%a4%e5%8f%89%e7%bc%96%e8%af%91Android%e4%b8%8b%e7%9a%84ffmpeg&summary=%5bport-ffmpeg-to-Android%5d%20%e4%ba%a4%e5%8f%89%e7%bc%96%e8%af%91Android%e4%b8%8b%e7%9a%84ffmpeg&source=https%3a%2f%2fxing2387.github.io%2fposts%2fandroidffmpeg%2fport-ffmpeg-to-android%2f"><svg viewBox="0 0 512 512"><path d="M449.446.0C483.971.0 512 28.03 512 62.554v386.892C512 483.97 483.97 512 449.446 512h-386.892c-34.524.0-62.554-28.03-62.554-62.554v-386.892c0-34.524 28.029-62.554 62.554-62.554h386.892zM160.461 423.278V197.561h-75.04v225.717h75.04zm270.539.0v-129.439c0-69.333-37.018-101.586-86.381-101.586-39.804.0-57.634 21.891-67.617 37.266v-31.958h-75.021c.995 21.181.0 225.717.0 225.717h75.02v-126.056c0-6.748.486-13.492 2.474-18.315 5.414-13.475 17.767-27.434 38.494-27.434 27.135.0 38.007 20.707 38.007 51.037v120.768h75.024zm-307.552-334.556c-25.674.0-42.448 16.879-42.448 39.002.0 21.658 16.264 39.002 41.455 39.002h.484c26.165.0 42.452-17.344 42.452-39.002-.485-22.092-16.241-38.954-41.943-39.002z" /></svg></a><a target=_blank rel="noopener noreferrer" aria-label="share [port-ffmpeg-to-Android] 交叉编译Android下的ffmpeg on reddit" href="https://reddit.com/submit?url=https%3a%2f%2fxing2387.github.io%2fposts%2fandroidffmpeg%2fport-ffmpeg-to-android%2f&title=%5bport-ffmpeg-to-Android%5d%20%e4%ba%a4%e5%8f%89%e7%bc%96%e8%af%91Android%e4%b8%8b%e7%9a%84ffmpeg"><svg viewBox="0 0 512 512"><path d="M449.446.0C483.971.0 512 28.03 512 62.554v386.892C512 483.97 483.97 512 449.446 512h-386.892c-34.524.0-62.554-28.03-62.554-62.554v-386.892c0-34.524 28.029-62.554 62.554-62.554h386.892zM446 265.638c0-22.964-18.616-41.58-41.58-41.58-11.211.0-21.361 4.457-28.841 11.666-28.424-20.508-67.586-33.757-111.204-35.278l18.941-89.121 61.884 13.157c.756 15.734 13.642 28.29 29.56 28.29 16.407.0 29.706-13.299 29.706-29.701.0-16.403-13.299-29.702-29.706-29.702-11.666.0-21.657 6.792-26.515 16.578l-69.105-14.69c-1.922-.418-3.939-.042-5.585 1.036-1.658 1.073-2.811 2.761-3.224 4.686l-21.152 99.438c-44.258 1.228-84.046 14.494-112.837 35.232-7.468-7.164-17.589-11.591-28.757-11.591-22.965.0-41.585 18.616-41.585 41.58.0 16.896 10.095 31.41 24.568 37.918-.639 4.135-.99 8.328-.99 12.576.0 63.977 74.469 115.836 166.33 115.836s166.334-51.859 166.334-115.836c0-4.218-.347-8.387-.977-12.493 14.564-6.47 24.735-21.034 24.735-38.001zm-119.474 108.193c-20.27 20.241-59.115 21.816-70.534 21.816-11.428.0-50.277-1.575-70.522-21.82-3.007-3.008-3.007-7.882.0-10.889 3.003-2.999 7.882-3.003 10.885.0 12.777 12.781 40.11 17.317 59.637 17.317 19.522.0 46.86-4.536 59.657-17.321 3.016-2.999 7.886-2.995 10.885.008 3.008 3.011 3.003 7.882-.008 10.889zm-5.23-48.781c-16.373.0-29.701-13.324-29.701-29.698.0-16.381 13.328-29.714 29.701-29.714 16.378.0 29.706 13.333 29.706 29.714.0 16.374-13.328 29.698-29.706 29.698zm-160.386-29.702c0-16.381 13.328-29.71 29.714-29.71 16.369.0 29.689 13.329 29.689 29.71.0 16.373-13.32 29.693-29.689 29.693-16.386.0-29.714-13.32-29.714-29.693z" /></svg></a><a target=_blank rel="noopener noreferrer" aria-label="share [port-ffmpeg-to-Android] 交叉编译Android下的ffmpeg on facebook" href="https://facebook.com/sharer/sharer.php?u=https%3a%2f%2fxing2387.github.io%2fposts%2fandroidffmpeg%2fport-ffmpeg-to-android%2f"><svg viewBox="0 0 512 512"><path d="M449.446.0C483.971.0 512 28.03 512 62.554v386.892C512 483.97 483.97 512 449.446 512H342.978v-192.915h66.6l12.672-82.621h-79.272v-53.617c0-22.603 11.073-44.636 46.58-44.636H425.6v-70.34s-32.71-5.582-63.982-5.582c-65.288.0-107.96 39.569-107.96 111.204v62.971h-72.573v82.621h72.573V512h-191.104c-34.524.0-62.554-28.03-62.554-62.554v-386.892c0-34.524 28.029-62.554 62.554-62.554h386.892z" /></svg></a><a target=_blank rel="noopener noreferrer" aria-label="share [port-ffmpeg-to-Android] 交叉编译Android下的ffmpeg on whatsapp" href="https://api.whatsapp.com/send?text=%5bport-ffmpeg-to-Android%5d%20%e4%ba%a4%e5%8f%89%e7%bc%96%e8%af%91Android%e4%b8%8b%e7%9a%84ffmpeg%20-%20https%3a%2f%2fxing2387.github.io%2fposts%2fandroidffmpeg%2fport-ffmpeg-to-android%2f"><svg viewBox="0 0 512 512"><path d="M449.446.0C483.971.0 512 28.03 512 62.554v386.892C512 483.97 483.97 512 449.446 512h-386.892c-34.524.0-62.554-28.03-62.554-62.554v-386.892c0-34.524 28.029-62.554 62.554-62.554h386.892zm-58.673 127.703c-33.842-33.881-78.847-52.548-126.798-52.568-98.799.0-179.21 80.405-179.249 179.234-.013 31.593 8.241 62.428 23.927 89.612l-25.429 92.884 95.021-24.925c26.181 14.28 55.659 21.807 85.658 21.816h.074c98.789.0 179.206-80.413 179.247-179.243.018-47.895-18.61-92.93-52.451-126.81zM263.976 403.485h-.06c-26.734-.01-52.954-7.193-75.828-20.767l-5.441-3.229-56.386 14.792 15.05-54.977-3.542-5.637c-14.913-23.72-22.791-51.136-22.779-79.287.033-82.142 66.867-148.971 149.046-148.971 39.793.014 77.199 15.531 105.329 43.692 28.128 28.16 43.609 65.592 43.594 105.4-.034 82.149-66.866 148.983-148.983 148.984zm81.721-111.581c-4.479-2.242-26.499-13.075-30.604-14.571-4.105-1.495-7.091-2.241-10.077 2.241-2.986 4.483-11.569 14.572-14.182 17.562-2.612 2.988-5.225 3.364-9.703 1.12-4.479-2.241-18.91-6.97-36.017-22.23-13.314-11.876-22.304-26.542-24.916-31.026s-.279-6.908 1.963-9.14c2.016-2.007 4.48-5.232 6.719-7.847 2.24-2.615 2.986-4.484 4.479-7.472 1.493-2.99.747-5.604-.374-7.846-1.119-2.241-10.077-24.288-13.809-33.256-3.635-8.733-7.327-7.55-10.077-7.688-2.609-.13-5.598-.158-8.583-.158-2.986.0-7.839 1.121-11.944 5.604-4.105 4.484-15.675 15.32-15.675 37.364.0 22.046 16.048 43.342 18.287 46.332 2.24 2.99 31.582 48.227 76.511 67.627 10.685 4.615 19.028 7.371 25.533 9.434 10.728 3.41 20.492 2.929 28.209 1.775 8.605-1.285 26.499-10.833 30.231-21.295 3.732-10.464 3.732-19.431 2.612-21.298-1.119-1.869-4.105-2.99-8.583-5.232z" /></svg></a><a target=_blank rel="noopener noreferrer" aria-label="share [port-ffmpeg-to-Android] 交叉编译Android下的ffmpeg on telegram" href="https://telegram.me/share/url?text=%5bport-ffmpeg-to-Android%5d%20%e4%ba%a4%e5%8f%89%e7%bc%96%e8%af%91Android%e4%b8%8b%e7%9a%84ffmpeg&url=https%3a%2f%2fxing2387.github.io%2fposts%2fandroidffmpeg%2fport-ffmpeg-to-android%2f"><svg viewBox="2 2 28 28"><path d="M26.49 29.86H5.5a3.37 3.37.0 01-2.47-1 3.35 3.35.0 01-1-2.47V5.48A3.36 3.36.0 013 3 3.37 3.37.0 015.5 2h21A3.38 3.38.0 0129 3a3.36 3.36.0 011 2.46V26.37a3.35 3.35.0 01-1 2.47A3.38 3.38.0 0126.49 29.86zm-5.38-6.71a.79.79.0 00.85-.66L24.73 9.24a.55.55.0 00-.18-.46.62.62.0 00-.41-.17q-.08.0-16.53 6.11a.59.59.0 00-.41.59.57.57.0 00.43.52l4 1.24 1.61 4.83a.62.62.0 00.63.43.56.56.0 00.4-.17L16.54 20l4.09 3A.9.9.0 0021.11 23.15zM13.8 20.71l-1.21-4q8.72-5.55 8.78-5.55c.15.0.23.0.23.16a.18.18.0 010 .06s-2.51 2.3-7.52 6.8z" /></svg></a></div></footer></article></main><footer class=footer><span>&copy; 2021 <a href=https://xing2387.github.io/>xing2387.github.io</a></span>
+<span>Powered by
+<a href=https://gohugo.io/ rel="noopener noreferrer" target=_blank>Hugo</a> &
+        <a href=https://git.io/hugopapermod rel=noopener target=_blank>PaperMod</a></span></footer><a href=#top aria-label="go to top" title="Go to Top (Alt + G)"><button class=top-link id=top-link type=button accesskey=g><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentcolor"><path d="M12 6H0l6-6z" /></svg></button></a>
+<script>let menu=document.getElementById('menu')
+menu.scrollLeft=localStorage.getItem("menu-scroll-position");menu.onscroll=function(){localStorage.setItem("menu-scroll-position",menu.scrollLeft);}
+document.querySelectorAll('a[href^="#"]').forEach(anchor=>{anchor.addEventListener("click",function(e){e.preventDefault();var id=this.getAttribute("href").substr(1);if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches){document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({behavior:"smooth"});}else{document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();}
+if(id==="top"){history.replaceState(null,null," ");}else{history.pushState(null,null,`#${id}`);}});});</script><script>var mybutton=document.getElementById("top-link");window.onscroll=function(){if(document.body.scrollTop>800||document.documentElement.scrollTop>800){mybutton.style.visibility="visible";mybutton.style.opacity="1";}else{mybutton.style.visibility="hidden";mybutton.style.opacity="0";}};</script><script>document.getElementById("theme-toggle").addEventListener("click",()=>{if(document.body.className.includes("dark")){document.body.classList.remove('dark');localStorage.setItem("pref-theme",'light');}else{document.body.classList.add('dark');localStorage.setItem("pref-theme",'dark');}})</script></body></html>

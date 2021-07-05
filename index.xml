@@ -9,7 +9,26 @@
       <link>https://xing2387.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Fri, 02 Jul 2021 14:23:00 +0800</lastBuildDate><atom:link href="https://xing2387.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Mon, 05 Jul 2021 14:21:00 +0800</lastBuildDate><atom:link href="https://xing2387.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>[port-ffmpeg-to-Android] 交叉编译Android下的ffmpeg</title>
+      <link>https://xing2387.github.io/posts/androidffmpeg/port-ffmpeg-to-android/</link>
+      <pubDate>Mon, 05 Jul 2021 14:21:00 +0800</pubDate>
+      
+      <guid>https://xing2387.github.io/posts/androidffmpeg/port-ffmpeg-to-android/</guid>
+      <description>状态： 编译成功了，但还没验证得到的动态库是否正常可用。后面再更新。    下载ffmpeg源码 ffmpeg-4.4.tar.gz
+  Android ABI
+   ABI 支持的指令集 备注     armeabi-v7a armeabi等 与 ARMv5/v6 设备不兼容。   arm64-v8a AArch64    x86 x86 (IA-32)等 不支持 MOVBE 或 SSE4。   arm64-v8a x86-64等       编译脚本
+修改B站ijkplayer的compile-ffmpeg.sh得到。
+见末尾 build_ffmpeg.sh文件
+改动：
+  修改源码的目录结构，让各个平台共用一份代码。ijk是各个abi各自一份源码ffmpeg-${abi}，这比较独立。但是我想可能各个平台的公共代码比较多？独立的话，如果要修改源码就要同步修改各个平台的，虽然可以用软链接解决问题，但是先共用一份吧，目前先不管多平台的适配。
+  修改编译输出的目录结构，在源码下新建个build目录，各个平台的输出就是build/ffmpeg-${abi}。
+  修改生成的standalone toolchain目录，为build/toolchains/ffmpeg-${abi}。
+  更新ffmpeg和ndk版本，用了目前最新的4.4版本，按B站ijk的ndk14-android9编译会失败，更新成了ndk20-android21。
+  修改编译的so库名字为libandroidffmpeg.</description>
+    </item>
+    
     <item>
       <title>[gnu-automake-manual] 2.4. Hello World</title>
       <link>https://xing2387.github.io/posts/automake/2.4-hello-world/</link>
